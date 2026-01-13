@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ENUMS 
+enum UserRole {
+  CLIENT
+  PROVIDER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+// MODELS
+model User {
+  id       Int      @id @default(autoincrement())
+  email    String   @unique
+  password String
+  name     String
+  phone    Int
+  role     UserRole @default(CLIENT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations - Se for CLIENT
+  bookingsAsClient Booking[] @relation("ClientBookings")
+  reviewsGiven     Review[]  @relation("ClientReviews")
+  payments         Payment[]
+
+  // Relations - Se for PROVIDER
+  services           Service[]
+  availabilities     Availability[]
+  bookingsAsProvider Booking[]      @relation("ProviderBookings")
+  reviews            Review[]       @relation("ProviderReviews")
+
+  @@map("users")
+}
+
+model Service {
+  id          Int       @id @default(autoincrement())
+  provider    User      @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  providerId  Int
+  name        String
+  description String?
+  duration    Int // em minutos (15, 30, 45, 60, etc)
+  price       Float // em reais
+  category    String? // "Beleza", "Saúde", "Educação", etc
+  isActive    Boolean   @default(true)
+  bookings    Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("services")
+}
+
+model Availability {
+  id        Int    @id @default(autoincrement())
+  dayOfWeek Int // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+  startTime String // "09:00"
+  endTime   String // "18:00"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  provider   User @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  providerId Int
+
+  @@map("availabilities")
+}
+
+model Booking {
+  id        Int           @id @default(autoincrement())
+  startTime DateTime
+  endTime   DateTime
+  status    BookingStatus @default(PENDING_PAYMENT)
+  notes     String?
+
+  // Stripe Integration
+  paymentIntentId String? @unique
+
+  // Timestamps
+  paidAt      DateTime?
+  cancelledAt DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  service   Service @relation(fields: [serviceId], references: [id])
+  serviceId Int
+
+  client   User @relation("ClientBookings", fields: [clientId], references: [id])
+  clientId Int
+
+  provider   User @relation("ProviderBookings", fields: [providerId], references: [id])
+  providerId Int
+
+  payment Payment?
+  review  Review?
+
+  @@map("bookings")
+}
+
+model Payment {
+  id     Int           @id @default(autoincrement())
+  amount Float
+  status PaymentStatus @default(PENDING)
+
+  // Stripe
+  paymentIntentId String  @unique
+  paymentMethod   String? // "card", "pix", etc
+  receiptUrl      String?
+
+  // Refund
+  refundId     String?
+  refundAmount Float?
+  refundedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId Int     @unique
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  @@map("payments")
+}
+
+model Review {
+  id      String @id @default(uuid())
+  rating  Int // 1 a 5 estrelas
+  comment String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId Int     @unique
+
+  client   User @relation("ClientReviews", fields: [clientId], references: [id])
+  clientId Int
+
+  provider   User @relation("ProviderReviews", fields: [providerId], references: [id])
+  providerId Int
+
+  @@map("reviews")
+}
