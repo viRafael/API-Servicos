@@ -35,7 +35,7 @@ model User {
   email    String   @unique
   password String
   name     String
-  phone    Int
+  phone    String   @unique
   role     UserRole @default(CLIENT)
 
   createdAt DateTime @default(now())
@@ -97,7 +97,7 @@ model Booking {
   notes     String?
 
   // Stripe Integration
-  paymentIntentId String? @unique
+  paymentIntentId Int? @unique
 
   // Timestamps
   paidAt      DateTime?
@@ -128,12 +128,12 @@ model Payment {
   status PaymentStatus @default(PENDING)
 
   // Stripe
-  paymentIntentId String  @unique
-  paymentMethod   String? // "card", "pix", etc
-  receiptUrl      String?
+  paymentIntentId Int  @unique
+  paymentMethod   Int? // "card", "pix", etc
+  receiptUrl      Int?
 
   // Refund
-  refundId     String?
+  refundId     Int?
   refundAmount Float?
   refundedAt   DateTime?
 
@@ -151,7 +151,7 @@ model Payment {
 }
 
 model Review {
-  id      String @id @default(uuid())
+  id      Int    @id @default(autoincrement())
   rating  Int // 1 a 5 estrelas
   comment String
 
