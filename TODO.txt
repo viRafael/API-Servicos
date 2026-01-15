@@ -1,0 +1,7 @@
+- Rota de "LOGOUT DE USER"
+
+- ATUALIZAR ROTA DE USER MODULE, GET ALL USERS -> fazer pagination
+
+- Listar serviços / MODULE SERVICOES -> fazer pagination
+
+- > Mudar a forma de que definido PROVIDER quando ele cria um servico de primeira, olhar a CREATE DO SERVICE

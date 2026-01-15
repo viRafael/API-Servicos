@@ -13,6 +13,8 @@ import jwtConfig from './config/jwt.config';
 import type { ConfigType } from '@nestjs/config';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { TokenPayloadDto } from './dto/token-payload.dto';
 
 @Injectable()
 export class AuthService {
@@ -102,12 +104,50 @@ export class AuthService {
     });
 
     if (existPhone) {
-      throw new ForbiddenException('Phpne already in use');
+      throw new ForbiddenException('Phone already in use');
     }
 
     registerDto.phone = registerDto.phone.replace(/\D/g, '');
 
     // Cria a instancia
-    return this.userService.create(registerDto);
+    return this.userService.register(registerDto);
+  }
+
+  async refreshToken(refreshTokenDto: RefreshTokenDto) {
+    try {
+      const payload = await this.jwtService.verifyAsync<TokenPayloadDto>(
+        refreshTokenDto.refreshToken,
+        this.jwtConfiguration,
+      );
+
+      const user = await this.prismaService.user.findUnique({
+        where: {
+          id: payload.sub,
+        },
+      });
+
+      if (!user) {
+        throw new Error('Pessoa não encontrada');
+      }
+
+      const accesToken = await this.generateToken<Partial<User>>(
+        user.id,
+        this.jwtConfiguration.jwtTtl,
+        user.role,
+      );
+
+      const refreshToken = await this.generateToken<Partial<User>>(
+        user.id,
+        this.jwtConfiguration.jwtRefreshTtl,
+        user.role,
+      );
+
+      return {
+        accesToken,
+        refreshToken,
+      };
+    } catch (error) {
+      throw new UnauthorizedException(error);
+    }
   }
 }

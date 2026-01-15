@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString, Min, Max } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString, Min, Max } from 'class-validator';
+import { UserRole } from 'src/auth/enum/roles.enum';
 
 export class UpdateUserDto {
   @IsNotEmpty()
@@ -12,4 +13,7 @@ export class UpdateUserDto {
   @Min(3)
   @Max(18)
   phone?: string;
+
+  @IsEnum(UserRole)
+  role?: UserRole;
 }

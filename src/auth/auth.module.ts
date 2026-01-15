@@ -7,10 +7,12 @@ import { PrismaModule } from 'src/common/prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import jwtConfig from './config/jwt.config';
+import { UsersService } from 'src/users/users.service';
 
 @Module({
   imports: [
     PrismaModule,
+    UsersService,
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync(jwtConfig.asProvider()),
   ],
