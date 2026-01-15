@@ -25,7 +25,7 @@ export class ServiceService {
     });
 
     await this.usersService.update(createServiceDto.providerId, {
-      role: 'PROVIDER',
+      role: Roles.PROVIDER,
     });
 
     return service;

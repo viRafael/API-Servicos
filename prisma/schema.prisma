@@ -119,6 +119,7 @@ model Booking {
   payment Payment?
   review  Review?
 
+  @@unique([providerId, startTime])
   @@map("bookings")
 }
 

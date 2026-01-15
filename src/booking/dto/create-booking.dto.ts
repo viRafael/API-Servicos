@@ -1,44 +1,19 @@
-import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, IsDateString } from 'class-validator';
 
 export class CreateBookingDto {
   @IsNotEmpty()
-  @Type(() => Date)
-  startTime: Date;
-
-  @IsNotEmpty()
-  @Type(() => Date)
-  endTime: Date;
-
-  @IsNotEmpty()
-  @IsString()
-  notes?: string;
-
-  @IsNotEmpty()
   @IsNumber()
-  paymentIntentId: number;
-
-  @IsNotEmpty()
-  @Type(() => Date)
-  paidAt?: Date;
-
-  @IsNotEmpty()
-  @Type(() => Date)
-  cancelledAt?: Date;
-
-  @IsNotEmpty()
-  @Type(() => Date)
-  completedAt?: Date;
+  providerId: number;
 
   @IsNotEmpty()
   @IsNumber()
   serviceId: number;
 
   @IsNotEmpty()
-  @IsNumber()
-  clientId: number;
+  @IsDateString()
+  startTime: string;
 
-  @IsNotEmpty()
-  @IsNumber()
-  providerId: number;
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

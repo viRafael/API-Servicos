@@ -6,6 +6,7 @@ import { HashingService } from 'src/auth/hashing/hasing.service';
 import { RegisterDto } from 'src/auth/dto/register.dto';
 import { TokenPayloadDto } from 'src/auth/dto/token-payload.dto';
 import { Roles } from 'src/auth/enum/roles.enum';
+import { UserRole } from '@prisma/client'; // Import UserRole from Prisma Client
 
 @Injectable()
 export class UsersService {
@@ -43,7 +44,7 @@ export class UsersService {
         password: hashedPassword,
         name: createUserDto.name,
         phone: createUserDto.phone.replace(/\D/g, ''),
-        role: createUserDto.role,
+        role: createUserDto.role ? UserRole[createUserDto.role] : UserRole.CLIENT, // Map to Prisma's UserRole
       },
       omit: {
         password: true,
@@ -58,8 +59,22 @@ export class UsersService {
   findAllProviders() {
     return this.prismaService.user.findMany({
       where: {
-        role: 'PROVIDER',
+        role: UserRole.PROVIDER, // Use UserRole from Prisma
       },
+    });
+  }
+
+  update(id: number, updateUserDto: UpdateUserDto) {
+    const data: any = { ...updateUserDto };
+    if (updateUserDto.role) {
+      data.role = UserRole[updateUserDto.role]; // Map to Prisma's UserRole
+    }
+
+    return this.prismaService.user.update({
+      where: {
+        id,
+      },
+      data,
     });
   }
 
@@ -75,17 +90,6 @@ export class UsersService {
     return this.prismaService.user.findUnique({
       where: {
         email,
-      },
-    });
-  }
-
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return this.prismaService.user.update({
-      where: {
-        id,
-      },
-      data: {
-        ...updateUserDto,
       },
     });
   }
