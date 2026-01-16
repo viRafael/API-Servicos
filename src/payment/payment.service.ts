@@ -2,17 +2,34 @@ import { Injectable } from '@nestjs/common';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
+import { BookingService } from 'src/booking/booking.service';
+import { MailService } from 'src/common/mail/mail.service';
+import { BookingStatus } from '@prisma/client';
 
 @Injectable()
 export class PaymentService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly bookingService: BookingService,
+    private readonly mailService: MailService,
+  ) {}
 
-  create(createPaymentDto: CreatePaymentDto) {
-    return this.prismaService.payment.create({
+  async create(createPaymentDto: CreatePaymentDto) {
+    const payment = await this.prismaService.payment.create({
       data: {
         ...createPaymentDto,
       },
     });
+
+    const booking = await this.bookingService.changeBookingStatus(
+      createPaymentDto.bookingId,
+      BookingStatus.CONFIRMED,
+    );
+
+    await this.mailService.sendPaymentConfirmed(booking);
+    await this.mailService.sendBookingConfirmation(booking);
+
+    return payment;
   }
 
   findAll() {

@@ -14,10 +14,15 @@ import { FindBookingsAsProviderDto } from './dto/find-bookings-as-provider.dto';
 import { addMinutes, isBefore } from 'date-fns';
 import { Booking, BookingStatus, Prisma, UserRole } from '@prisma/client';
 import { Roles } from 'src/auth/enum/roles.enum';
+import { MailService } from 'src/common/mail/mail.service';
+import { FullBooking } from './types/booking.type';
 
 @Injectable()
 export class BookingService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   private validateBookingCanBeModified(
     booking: Booking,
@@ -104,6 +109,24 @@ export class BookingService {
     ) {
       throw new BadRequestException('Provider is not available at this time.');
     }
+  }
+
+  async getFullBooking(bookingId: number): Promise<FullBooking> {
+    const booking = await this.prismaService.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        client: true,
+        provider: true,
+        service: true,
+        payment: true,
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found.');
+    }
+
+    return booking as FullBooking;
   }
 
   async findAvailableSlots(query: AvailableSlotsDto) {
@@ -242,7 +265,7 @@ export class BookingService {
       bookingEndTime,
     );
 
-    return this.prismaService.booking.create({
+    const booking = await this.prismaService.booking.create({
       data: {
         clientId,
         providerId,
@@ -253,6 +276,8 @@ export class BookingService {
         status: BookingStatus.PENDING_PAYMENT,
       },
     });
+
+    return this.getFullBooking(booking.id);
   }
 
   async findAll(userId: number, userRole: Roles, query: FindAllBookingsDto) {
@@ -393,18 +418,15 @@ export class BookingService {
   }
 
   async cancel(userId: number, id: number, cancelBookingDto: CancelBookingDto) {
-    const booking = await this.prismaService.booking.findUnique({
-      where: { id },
-    });
+    const booking = await this.getFullBooking(id);
 
     if (!booking) {
       throw new NotFoundException('Booking not found.');
     }
 
-    // Reutilizar validação
     this.validateBookingCanBeModified(booking, userId, 'cancel');
 
-    return this.prismaService.booking.update({
+    const CanceledBooking = await this.prismaService.booking.update({
       where: { id },
       data: {
         status: BookingStatus.CANCELLED,
@@ -416,6 +438,29 @@ export class BookingService {
           : booking.notes,
       },
     });
+
+    const fullBooking = await this.getFullBooking(CanceledBooking.id);
+
+    await this.mailService.sendCancellationNotice(
+      fullBooking,
+      cancelBookingDto.reason,
+    );
+    return fullBooking;
+  }
+
+  async changeBookingStatus(bookingId: number, status: BookingStatus) {
+    const booking = await this.getFullBooking(bookingId);
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found.');
+    }
+
+    const updatedBooking = await this.prismaService.booking.update({
+      where: { id: bookingId },
+      data: { status },
+    });
+
+    return this.getFullBooking(updatedBooking.id);
   }
 
   async complete(userId: number, id: number) {
