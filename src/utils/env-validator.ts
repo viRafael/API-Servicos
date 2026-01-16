@@ -12,6 +12,13 @@ interface EnvVars {
   JWT_TOKEN_ISSUER: string;
   JWT_TTL: number;
   JWT_REFRESH_TTL: number;
+
+  MAIL_HOST: string;
+  MAIL_PORT: number;
+  MAIL_USER: string;
+  MAIL_PASSWORD: string;
+  MAIL_FROM_NAME: string;
+  MAIL_FROM_EMAIL: string;
 }
 
 const envSchema = Joi.object<EnvVars>({
@@ -23,6 +30,13 @@ const envSchema = Joi.object<EnvVars>({
   JWT_TOKEN_ISSUER: Joi.string().uri().required(),
   JWT_TTL: Joi.number().required(),
   JWT_REFRESH_TTL: Joi.number().required(),
+
+  MAIL_HOST: Joi.string().hostname().required(),
+  MAIL_PORT: Joi.number().port().required(),
+  MAIL_USER: Joi.string().email().required(),
+  MAIL_PASSWORD: Joi.string().required(),
+  MAIL_FROM_NAME: Joi.string().required(),
+  MAIL_FROM_EMAIL: Joi.string().email().required(),
 })
   .unknown(true) // Permite outras variáveis de ambiente
   .required();

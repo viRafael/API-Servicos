@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cancelamento de Agendamento</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, Helvetica, sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:20px 0;">
+  <tr>
+    <td align="center">
+
+      <table width="600" cellpadding="0" cellspacing="0"
+        style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+
+        <tr>
+          <td style="background:#7f1d1d; padding:20px; text-align:center;">
+            <h1 style="color:#ffffff; margin:0;">API - Service</h1>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:30px;">
+            <h2 style="color:#7f1d1d;">Agendamento cancelado ❌</h2>
+
+            <p style="color:#475569;">
+              Olá <strong>{{clientName}}</strong>,
+            </p>
+
+            <p style="color:#475569;">
+              Informamos que o seguinte agendamento foi cancelado:
+            </p>
+
+            <table width="100%" style="background:#fef2f2; border-radius:6px; padding:15px;">
+              <tr><td><strong>Serviço:</strong> {{serviceName}}</td></tr>
+              <tr><td style="padding-top:8px;"><strong>Data:</strong> {{date}}</td></tr>
+              <tr><td style="padding-top:8px;"><strong>Horário:</strong> {{time}}</td></tr>
+            </table>
+
+            {{#if cancellationReason}}
+            <p style="color:#475569; margin-top:15px;">
+              <strong>Motivo:</strong> {{cancellationReason}}
+            </p>
+            {{/if}}
+
+            <p style="color:#475569;">
+              Caso queira realizar um novo agendamento, basta acessar a plataforma.
+            </p>
+
+            <div style="text-align:center; margin:30px 0;">
+              <a href="{{platformUrl}}" style="background:#7f1d1d; color:#fff; padding:12px 24px; border-radius:6px; text-decoration:none;">
+                Novo agendamento
+              </a>
+            </div>
+
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background:#f1f5f9; padding:15px; text-align:center; font-size:12px; color:#64748b;">
+            © {{year}} API - Service
+          </td>
+        </tr>
+
+      </table>
+
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>
