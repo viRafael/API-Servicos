@@ -12,7 +12,7 @@ import { RescheduleBookingDto } from './dto/reschedule-booking.dto';
 import { FindAllBookingsDto } from './dto/find-all-bookings.dto';
 import { FindBookingsAsProviderDto } from './dto/find-bookings-as-provider.dto';
 import { addMinutes, isBefore } from 'date-fns';
-import { BookingStatus, UserRole } from '@prisma/client';
+import { Booking, BookingStatus, Prisma, UserRole } from '@prisma/client';
 import { Roles } from 'src/auth/enum/roles.enum';
 
 @Injectable()
@@ -20,7 +20,7 @@ export class BookingService {
   constructor(private readonly prismaService: PrismaService) {}
 
   private validateBookingCanBeModified(
-    booking: any,
+    booking: Booking,
     userId: number,
     action: string,
   ) {
@@ -213,7 +213,6 @@ export class BookingService {
   async create(clientId: number, createBookingDto: CreateBookingDto) {
     const { providerId, serviceId, startTime, notes } = createBookingDto;
 
-    // 1. Validar provider
     const provider = await this.prismaService.user.findUnique({
       where: { id: providerId, role: UserRole.PROVIDER },
     });
@@ -221,7 +220,6 @@ export class BookingService {
       throw new NotFoundException('Provider not found.');
     }
 
-    // 2. Validar service
     const service = await this.prismaService.service.findUnique({
       where: { id: serviceId, providerId },
     });
@@ -229,25 +227,21 @@ export class BookingService {
       throw new NotFoundException('Service not found for this provider.');
     }
 
-    // 3. Calcular horários
     const bookingStartTime = new Date(startTime);
     const bookingEndTime = addMinutes(bookingStartTime, service.duration);
 
-    // 4. Validar disponibilidade do slot (reutilizando método)
     await this.validateSlotAvailability(
       providerId,
       bookingStartTime,
       bookingEndTime,
     );
 
-    // 5. Validar disponibilidade do provider (reutilizando método)
     await this.validateProviderAvailability(
       providerId,
       bookingStartTime,
       bookingEndTime,
     );
 
-    // 6. Criar booking
     return this.prismaService.booking.create({
       data: {
         clientId,
@@ -263,7 +257,7 @@ export class BookingService {
 
   async findAll(userId: number, userRole: Roles, query: FindAllBookingsDto) {
     const { status, startDate, endDate } = query;
-    const where: any = {};
+    const where: Prisma.BookingWhereInput = {};
 
     if (userRole === Roles.CLIENT) {
       where.clientId = userId;
@@ -344,7 +338,7 @@ export class BookingService {
     query: FindBookingsAsProviderDto,
   ) {
     const { status, date } = query;
-    const where: any = { providerId };
+    const where: Prisma.BookingWhereInput = { providerId };
 
     if (status) {
       where.status = status;

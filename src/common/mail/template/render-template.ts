@@ -4,7 +4,7 @@ import * as Handlebars from 'handlebars';
 
 export function renderTemplate(
   templateName: string,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
 ): string {
   const templatePath = path.join(__dirname, `${templateName}.hbs`);
 

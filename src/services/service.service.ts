@@ -9,6 +9,7 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 import { UsersService } from 'src/users/users.service';
 import { SetRoleAccess } from 'src/auth/decorator/set-role.decorator';
 import { Roles } from 'src/auth/enum/roles.enum';
+import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class ServiceService {
@@ -18,15 +19,21 @@ export class ServiceService {
   ) {}
 
   async create(createServiceDto: CreateServiceDto) {
+    const user = await this.usersService.findOne(createServiceDto.providerId);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
     const service = await this.prismaService.service.create({
       data: {
         ...createServiceDto,
       },
     });
 
-    await this.usersService.update(createServiceDto.providerId, {
-      role: Roles.PROVIDER,
-    });
+    if (user.role !== UserRole.PROVIDER) {
+      await this.usersService.updateRoleToProvider(createServiceDto.providerId);
+    }
 
     return service;
   }

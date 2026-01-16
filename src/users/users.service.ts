@@ -6,7 +6,7 @@ import { HashingService } from 'src/auth/hashing/hasing.service';
 import { RegisterDto } from 'src/auth/dto/register.dto';
 import { TokenPayloadDto } from 'src/auth/dto/token-payload.dto';
 import { Roles } from 'src/auth/enum/roles.enum';
-import { UserRole } from '@prisma/client'; // Import UserRole from Prisma Client
+import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -44,10 +44,23 @@ export class UsersService {
         password: hashedPassword,
         name: createUserDto.name,
         phone: createUserDto.phone.replace(/\D/g, ''),
-        role: createUserDto.role ? UserRole[createUserDto.role] : UserRole.CLIENT, // Map to Prisma's UserRole
+        role: createUserDto.role
+          ? UserRole[createUserDto.role]
+          : UserRole.CLIENT, // Map to Prisma's UserRole
       },
       omit: {
         password: true,
+      },
+    });
+  }
+
+  updateRoleToProvider(id: number) {
+    return this.prismaService.user.update({
+      where: {
+        id,
+      },
+      data: {
+        role: UserRole.PROVIDER,
       },
     });
   }
@@ -64,17 +77,32 @@ export class UsersService {
     });
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    const data: any = { ...updateUserDto };
-    if (updateUserDto.role) {
-      data.role = UserRole[updateUserDto.role]; // Map to Prisma's UserRole
+  async update(id: number, updateUserDto: UpdateUserDto) {
+    // Verifico se o existe o user com o ID fornecido
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!user) {
+      throw new ForbiddenException('User not found.');
+    }
+
+    // Verifico se é o mesmo do user logado
+    if (id !== user.id) {
+      throw new ForbiddenException(
+        'You do not have permission to update this user.',
+      );
     }
 
     return this.prismaService.user.update({
       where: {
         id,
       },
-      data,
+      data: {
+        ...updateUserDto,
+      },
     });
   }
 

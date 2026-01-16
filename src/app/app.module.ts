@@ -8,6 +8,7 @@ import { ReviewModule } from 'src/review/review.module';
 import { ServiceModule } from 'src/services/service.module';
 import { UsersModule } from 'src/users/users.module';
 import { ConfigModule } from '@nestjs/config';
+import { MailModule } from 'src/common/mail/mail.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ConfigModule } from '@nestjs/config';
     ReviewModule,
     ServiceModule,
     UsersModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

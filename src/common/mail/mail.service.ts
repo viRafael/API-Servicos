@@ -1,82 +1,137 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { env } from 'src/utils/env-validator';
 import { generalUseTemplate } from './template/general-use.template';
 import { renderTemplate } from './template/render-template';
+import { FullBooking } from 'src/booking/types/booking.type';
+import SMTPTransport from 'nodemailer/lib/smtp-transport';
+
+interface MailOptions {
+  to: string;
+  subject: string;
+  html?: string;
+  from?: string;
+}
 
 @Injectable()
 export class MailService {
-  private transporter: nodemailer.Transporter;
+  private readonly logger = new Logger(MailService.name);
+  private transporter: nodemailer.Transporter<SMTPTransport.SentMessageInfo>;
 
   constructor() {
     this.transporter = nodemailer.createTransport({
       host: env.MAIL_HOST,
       port: Number(env.MAIL_PORT),
-      secure: false, // Gmail usa 587 (STARTTLS)
+      secure: false,
       auth: {
-        user: env.MAIL_USER, // Seu email Gmail
-        pass: env.MAIL_PASSWORD, // Senha de app (16 caracteres)
+        user: env.MAIL_USER,
+        pass: env.MAIL_PASSWORD,
       },
-      // Configurações específicas para Gmail
       tls: {
         rejectUnauthorized: false,
       },
     });
   }
 
-  async sendEmail(to: string, from?: string, subject = 'Hello', html?: string) {
+  async sendEmail({ to, subject, html, from }: MailOptions) {
     const mailOptions = {
       from:
         from ||
         `${env.MAIL_FROM_NAME || 'Noreply'} <${env.MAIL_FROM_EMAIL || env.MAIL_USER}>`,
-      to, // Destinatário
-      subject, // Assunto
+      to,
+      subject,
       html: html || generalUseTemplate,
     };
 
-    await this.transporter.sendMail(mailOptions);
+    try {
+      const info: SMTPTransport.SentMessageInfo =
+        await this.transporter.sendMail(mailOptions);
+      if (info && info.messageId) {
+        this.logger.log(`Email sent to ${to}: ${info.messageId}`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to send email to ${to}`, error);
+    }
+
+    console.log('chegou no fim');
   }
 
-  async sendBookingConfirmation(booking: any) {
-    const html = renderTemplate('booking-confirmation', {
-      clientName: booking.client.name,
-      serviceName: booking.service.name,
-      providerName: booking.provider.name,
-      date: booking.date,
-      time: booking.time,
-      notes: booking.notes,
-      platformUrl: env.PLATFORM_URL,
-      year: new Date().getFullYear(),
-    });
+  async sendBookingConfirmation(booking: FullBooking) {
+    try {
+      const html = renderTemplate('booking-confirm', {
+        clientName: booking.client.name,
+        serviceName: booking.service.name,
+        providerName: booking.provider.name,
+        date: new Date(booking.startTime).toLocaleDateString(),
+        time: new Date(booking.startTime).toLocaleTimeString(),
+        notes: booking.notes,
+        year: new Date().getFullYear(),
+      });
 
-    await this.sendEmail(booking.client.email, 'Agendamento confirmado', html);
+      await this.sendEmail({
+        to: booking.client.email,
+        subject: 'Agendamento confirmado',
+        html,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send booking confirmation for booking ID: ${booking.id}`,
+        error,
+      );
+    }
   }
 
-  async sendCancellationNotice(booking: any) {
-    const html = renderTemplate('booking-cancellation', {
-      clientName: booking.client.name,
-      serviceName: booking.service.name,
-      date: booking.date,
-      time: booking.time,
-      cancellationReason: booking.cancellationReason,
-      platformUrl: env.PLATFORM_URL,
-      year: new Date().getFullYear(),
-    });
+  async sendCancellationNotice(booking: FullBooking, reason?: string) {
+    try {
+      const html = renderTemplate('booking-cancelation', {
+        clientName: booking.client.name,
+        serviceName: booking.service.name,
+        date: new Date(booking.startTime).toLocaleDateString(),
+        time: new Date(booking.startTime).toLocaleTimeString(),
+        cancellationReason: reason || 'N/A',
+        year: new Date().getFullYear(),
+      });
 
-    await this.sendEmail(booking.client.email, 'Agendamento cancelado', html);
+      await this.sendEmail({
+        to: booking.client.email,
+        subject: 'Agendamento cancelado',
+        html,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send cancellation notice for booking ID: ${booking.id}`,
+        error,
+      );
+    }
   }
 
-  async sendPaymentConfirmed(booking: any) {
-    const html = renderTemplate('payment-confirmed', {
-      clientName: booking.client.name,
-      serviceName: booking.service.name,
-      amount: booking.payment.amount,
-      paymentMethod: booking.payment.method,
-      paymentDate: booking.payment.date,
-      platformUrl: env.PLATFORM_URL,
-      year: new Date().getFullYear(),
-    });
+  async sendPaymentConfirmed(booking: FullBooking) {
+    if (!booking.payment) {
+      this.logger.warn(
+        `Payment information is missing for booking ID: ${booking.id}`,
+      );
+      return;
+    }
+    try {
+      const html = renderTemplate('payment-confirmed', {
+        clientName: booking.client.name,
+        serviceName: booking.service.name,
+        amount: booking.payment.amount,
+        paymentMethod: booking.payment.paymentMethod,
+        paymentDate: new Date(booking.payment.createdAt).toLocaleDateString(),
+        year: new Date().getFullYear(),
+      });
 
-    await this.sendEmail(booking.client.email, 'Pagamento confirmado', html);
+      await this.sendEmail({
+        to: booking.client.email,
+        subject: 'Pagamento confirmado',
+        html,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send payment confirmation for booking ID: ${booking.id}`,
+        error,
+      );
+    }
   }
 }
