@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BookingService } from './booking.service';
 import { BookingController } from './booking.controller';
 import { PrismaModule } from 'src/common/prisma/prisma.module';
@@ -12,7 +12,7 @@ import { MailModule } from 'src/common/mail/mail.module';
     PrismaModule,
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync(jwtConfig.asProvider()),
-    MailModule,
+    forwardRef(() => MailModule),
   ],
   controllers: [BookingController],
   providers: [BookingService],

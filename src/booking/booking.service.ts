@@ -14,14 +14,14 @@ import { FindBookingsAsProviderDto } from './dto/find-bookings-as-provider.dto';
 import { addMinutes, isBefore } from 'date-fns';
 import { Booking, BookingStatus, Prisma, UserRole } from '@prisma/client';
 import { Roles } from 'src/auth/enum/roles.enum';
-import { MailService } from 'src/common/mail/mail.service';
 import { FullBooking } from './types/booking.type';
+import { MailQueue } from 'src/common/mail/mail.queue';
 
 @Injectable()
 export class BookingService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly mailService: MailService,
+    private readonly mailQueue: MailQueue,
   ) {}
 
   private validateBookingCanBeModified(
@@ -441,10 +441,8 @@ export class BookingService {
 
     const fullBooking = await this.getFullBooking(CanceledBooking.id);
 
-    await this.mailService.sendCancellationNotice(
-      fullBooking,
-      cancelBookingDto.reason,
-    );
+    await this.mailQueue.sendCancellation(booking.id, cancelBookingDto.reason);
+
     return fullBooking;
   }
 

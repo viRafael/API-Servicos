@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { env } from 'src/utils/env-validator';
-import { generalUseTemplate } from './template/general-use.template';
 import { renderTemplate } from './template/render-template';
 import { FullBooking } from 'src/booking/types/booking.type';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
+import { generalUseTemplate } from './template/general-use.template';
 
 interface MailOptions {
   to: string;

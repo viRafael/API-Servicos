@@ -11,7 +11,7 @@ export class PaymentService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly bookingService: BookingService,
-    private readonly mailService: MailService,
+    private readonly mailQueue: MailService,
   ) {}
 
   async create(createPaymentDto: CreatePaymentDto) {
@@ -26,8 +26,8 @@ export class PaymentService {
       BookingStatus.CONFIRMED,
     );
 
-    await this.mailService.sendPaymentConfirmed(booking);
-    await this.mailService.sendBookingConfirmation(booking);
+    await this.mailQueue.sendPaymentConfirmed(booking);
+    await this.mailQueue.sendBookingConfirmation(booking);
 
     return payment;
   }
