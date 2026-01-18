@@ -15,6 +15,9 @@ import { UpdateServiceDto } from './dto/update-service.dto';
 import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { TokenPayloadDto } from 'src/auth/dto/token-payload.dto';
+import { RoleGuard } from 'src/auth/guards/role.guard';
+import { SetRoleAccess } from 'src/auth/decorator/set-role.decorator';
+import { Roles } from 'src/auth/enum/roles.enum';
 
 @Controller('service')
 export class ServiceController {
@@ -31,7 +34,8 @@ export class ServiceController {
     return this.serviceService.findAll();
   }
 
-  @UseGuards(AuthTokenGuard)
+  @UseGuards(AuthTokenGuard, RoleGuard)
+  @SetRoleAccess(Roles.PROVIDER)
   @Get('my-services')
   findAllMyService(@TokenPayloadParam() tokenPayload: TokenPayloadDto) {
     return this.serviceService.findAllMyService(tokenPayload.sub);

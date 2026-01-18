@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { env } from './utils/env-validator';
 import { AppModule } from './app/app.module';
 import { ValidationPipe } from '@nestjs/common';
+import * as bodyParser from 'body-parser';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -13,6 +15,9 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  app.use('/webhooks/stripe', bodyParser.raw({ type: 'application/json' }));
+  app.use(express.json());
 
   await app.listen(env.PORT);
 }

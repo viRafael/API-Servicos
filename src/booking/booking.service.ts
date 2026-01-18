@@ -16,12 +16,14 @@ import { Booking, BookingStatus, Prisma, UserRole } from '@prisma/client';
 import { Roles } from 'src/auth/enum/roles.enum';
 import { FullBooking } from './types/booking.type';
 import { MailQueue } from 'src/common/mail/mail.queue';
+import { PaymentService } from 'src/payment/payment.service';
 
 @Injectable()
 export class BookingService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly mailQueue: MailQueue,
+    private readonly paymentService: PaymentService,
   ) {}
 
   private validateBookingCanBeModified(
@@ -109,6 +111,27 @@ export class BookingService {
     ) {
       throw new BadRequestException('Provider is not available at this time.');
     }
+  }
+
+  attachPaymentIntent(bookingId: number, paymentIntentId: string) {
+    return this.prismaService.booking.update({
+      where: { id: bookingId },
+      data: {
+        paymentIntentId,
+        status: 'PENDING_PAYMENT',
+      },
+    });
+  }
+
+  confirmByPaymentIntent(paymentIntentId: string) {
+    return this.prismaService.booking.update({
+      where: {
+        paymentIntentId: paymentIntentId,
+      },
+      data: {
+        status: BookingStatus.CONFIRMED,
+      },
+    });
   }
 
   async getFullBooking(bookingId: number): Promise<FullBooking> {
@@ -277,7 +300,15 @@ export class BookingService {
       },
     });
 
-    return this.getFullBooking(booking.id);
+    const paymentIntent = await this.paymentService.createPaymentIntent(
+      booking.id,
+      service.price,
+    );
+
+    return {
+      booking: await this.getFullBooking(booking.id),
+      clientSecret: paymentIntent.clientSecret,
+    };
   }
 
   async findAll(userId: number, userRole: Roles, query: FindAllBookingsDto) {

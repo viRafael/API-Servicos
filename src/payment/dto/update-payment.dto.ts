@@ -7,11 +7,11 @@ export class UpdatePaymentDto {
 
   @IsNumber()
   @IsPositive()
-  paymentMethod: number;
+  paymentMethod: string;
 
   @IsNumber()
   @IsPositive()
-  receiptUrl?: number;
+  receiptUrl?: string;
 
   @IsNumber()
   @IsPositive()

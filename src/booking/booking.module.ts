@@ -6,10 +6,12 @@ import jwtConfig from 'src/auth/config/jwt.config';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import { MailModule } from 'src/common/mail/mail.module';
+import { PaymentModule } from 'src/payment/payment.module';
 
 @Module({
   imports: [
     PrismaModule,
+    PaymentModule,
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync(jwtConfig.asProvider()),
     forwardRef(() => MailModule),

@@ -7,19 +7,19 @@ export class CreatePaymentDto {
 
   @IsNumber()
   @IsPositive()
-  paymentIntentId: number;
+  paymentIntentId: string;
 
   @IsNumber()
   @IsPositive()
-  paymentMethod: number;
+  paymentMethod: string;
 
   @IsNumber()
   @IsPositive()
-  receiptUrl?: number;
+  receiptUrl?: string;
 
   @IsNumber()
   @IsPositive()
-  refundId?: number;
+  refundId?: string;
 
   @IsNumber()
   @IsPositive()

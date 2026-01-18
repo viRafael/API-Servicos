@@ -19,6 +19,8 @@ interface EnvVars {
   MAIL_PASSWORD: string;
   MAIL_FROM_NAME: string;
   MAIL_FROM_EMAIL: string;
+  STRIPE_SECRET_KEY: string;
+  STRIPE_WEBHOOK_SECRET: string;
 }
 
 const envSchema = Joi.object<EnvVars>({
@@ -37,6 +39,9 @@ const envSchema = Joi.object<EnvVars>({
   MAIL_PASSWORD: Joi.string().required(),
   MAIL_FROM_NAME: Joi.string().required(),
   MAIL_FROM_EMAIL: Joi.string().email().required(),
+
+  STRIPE_SECRET_KEY: Joi.string().required(),
+  STRIPE_WEBHOOK_SECRET: Joi.string().required(),
 })
   .unknown(true) // Permite outras variáveis de ambiente
   .required();

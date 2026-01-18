@@ -4,5 +4,5 @@ export type FullBooking = Booking & {
   client: User;
   provider: User;
   service: Service;
-  payment?: Payment;
+  payment?: Payment | null;
 };

@@ -42,11 +42,10 @@ export class ServiceService {
     return this.prismaService.service.findMany();
   }
 
-  @SetRoleAccess(Roles.PROVIDER)
   findAllMyService(id: number) {
     return this.prismaService.service.findMany({
       where: {
-        id,
+        providerId: id,
       },
     });
   }

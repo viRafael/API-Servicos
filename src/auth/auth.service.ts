@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { User } from '@prisma/client';
@@ -127,7 +128,7 @@ export class AuthService {
       });
 
       if (!user) {
-        throw new Error('Pessoa não encontrada');
+        throw new NotFoundException('User not found');
       }
 
       const accesToken = await this.generateToken<Partial<User>>(

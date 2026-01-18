@@ -97,7 +97,7 @@ model Booking {
   notes     String?
 
   // Stripe Integration
-  paymentIntentId Int? @unique
+  paymentIntentId String? @unique
 
   // Timestamps
   paidAt      DateTime?
@@ -129,12 +129,12 @@ model Payment {
   status PaymentStatus @default(PENDING)
 
   // Stripe
-  paymentIntentId Int  @unique
-  paymentMethod   Int? // "card", "pix", etc
-  receiptUrl      Int?
+  paymentIntentId String  @unique
+  paymentMethod   String? // "card", "pix", etc
+  receiptUrl      String?
 
   // Refund
-  refundId     Int?
+  refundId     String?
   refundAmount Float?
   refundedAt   DateTime?
 
