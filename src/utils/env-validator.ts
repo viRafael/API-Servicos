@@ -19,8 +19,13 @@ interface EnvVars {
   MAIL_PASSWORD: string;
   MAIL_FROM_NAME: string;
   MAIL_FROM_EMAIL: string;
+
   STRIPE_SECRET_KEY: string;
   STRIPE_WEBHOOK_SECRET: string;
+
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+  GOOGLE_REDIRECT_URI: string;
 }
 
 const envSchema = Joi.object<EnvVars>({
@@ -42,6 +47,10 @@ const envSchema = Joi.object<EnvVars>({
 
   STRIPE_SECRET_KEY: Joi.string().required(),
   STRIPE_WEBHOOK_SECRET: Joi.string().required(),
+
+  GOOGLE_CLIENT_ID: Joi.string().required(),
+  GOOGLE_CLIENT_SECRET: Joi.string().required(),
+  GOOGLE_REDIRECT_URI: Joi.string().uri().required(),
 })
   .unknown(true) // Permite outras variáveis de ambiente
   .required();

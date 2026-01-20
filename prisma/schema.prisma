@@ -31,12 +31,13 @@ enum PaymentStatus {
 
 // MODELS
 model User {
-  id       Int      @id @default(autoincrement())
-  email    String   @unique
-  password String
-  name     String
-  phone    String   @unique
-  role     UserRole @default(CLIENT)
+  id                 Int      @id @default(autoincrement())
+  email              String   @unique
+  password           String
+  name               String
+  phone              String   @unique
+  googleRefreshToken String?
+  role               UserRole @default(CLIENT)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -90,11 +91,13 @@ model Availability {
 }
 
 model Booking {
-  id        Int           @id @default(autoincrement())
-  startTime DateTime
-  endTime   DateTime
-  status    BookingStatus @default(PENDING_PAYMENT)
-  notes     String?
+  id                    Int           @id @default(autoincrement())
+  startTime             DateTime
+  endTime               DateTime
+  providerGoogleEventId String?       @map("provider_google_event_id")
+  clientGoogleEventId   String?       @map("client_google_event_id")
+  status                BookingStatus @default(PENDING_PAYMENT)
+  notes                 String?
 
   // Stripe Integration
   paymentIntentId String? @unique

@@ -17,6 +17,7 @@ import { Roles } from 'src/auth/enum/roles.enum';
 import { FullBooking } from './types/booking.type';
 import { MailQueue } from 'src/common/mail/mail.queue';
 import { PaymentService } from 'src/payment/payment.service';
+import { GoogleCalendarService } from 'src/google-calendar/google-calendar.service';
 
 @Injectable()
 export class BookingService {
@@ -24,6 +25,7 @@ export class BookingService {
     private readonly prismaService: PrismaService,
     private readonly mailQueue: MailQueue,
     private readonly paymentService: PaymentService,
+    private readonly googleCalendarService: GoogleCalendarService,
   ) {}
 
   private validateBookingCanBeModified(
@@ -53,7 +55,7 @@ export class BookingService {
     providerId: number,
     startTime: Date,
     endTime: Date,
-    excludeBookingId?: number, // Para excluir o booking atual ao reagendar
+    excludeBookingId?: number,
   ) {
     // Verifica por agendamentos sobrepostos
     const existingBookings = await this.prismaService.booking.findMany({
@@ -123,15 +125,63 @@ export class BookingService {
     });
   }
 
-  confirmByPaymentIntent(paymentIntentId: string) {
-    return this.prismaService.booking.update({
+  async confirmByPaymentIntent(paymentIntentId: string) {
+    const bookingToConfirm = await this.prismaService.booking.findUnique({
+      where: { paymentIntentId },
+      include: {
+        client: true,
+        provider: true,
+        service: true,
+      },
+    });
+
+    if (!bookingToConfirm) {
+      throw new NotFoundException('Booking not found for this payment intent.');
+    }
+
+    let providerGoogleEventId: string | null = null;
+    let clientGoogleEventId: string | null = null;
+
+    // Cria Google Calendar event para provider
+    try {
+      providerGoogleEventId = await this.googleCalendarService.createEvent(
+        bookingToConfirm.providerId,
+        bookingToConfirm as FullBooking,
+        'provider',
+      );
+    } catch (error) {
+      console.error(
+        `Failed to create Google Calendar event for provider ${bookingToConfirm.providerId} for booking ${bookingToConfirm.id}:`,
+        error,
+      );
+    }
+
+    // Cria Google Calendar event para client
+    try {
+      clientGoogleEventId = await this.googleCalendarService.createEvent(
+        bookingToConfirm.clientId,
+        bookingToConfirm as FullBooking,
+        'client',
+      );
+    } catch (error) {
+      console.error(
+        `Failed to create Google Calendar event for client ${bookingToConfirm.clientId} for booking ${bookingToConfirm.id}:`,
+        error,
+      );
+    }
+
+    const updatedBooking = await this.prismaService.booking.update({
       where: {
         paymentIntentId: paymentIntentId,
       },
       data: {
         status: BookingStatus.CONFIRMED,
+        providerGoogleEventId,
+        clientGoogleEventId,
       },
     });
+
+    return this.getFullBooking(updatedBooking.id);
   }
 
   async getFullBooking(bookingId: number): Promise<FullBooking> {
@@ -204,7 +254,7 @@ export class BookingService {
           lte: endOfDay,
         },
         status: {
-          notIn: [BookingStatus.CANCELLED], // Consider only active/pending bookings
+          notIn: [BookingStatus.CANCELLED],
         },
       },
       select: {
@@ -457,12 +507,42 @@ export class BookingService {
 
     this.validateBookingCanBeModified(booking, userId, 'cancel');
 
+    if (booking.providerGoogleEventId) {
+      try {
+        await this.googleCalendarService.deleteEvent(
+          booking.providerId,
+          booking.providerGoogleEventId,
+        );
+      } catch (error) {
+        console.error(
+          `Failed to delete Google Calendar event for provider ${booking.providerId} for booking ${booking.id}:`,
+          error,
+        );
+      }
+    }
+
+    if (booking.clientGoogleEventId) {
+      try {
+        await this.googleCalendarService.deleteEvent(
+          booking.clientId,
+          booking.clientGoogleEventId,
+        );
+      } catch (error) {
+        console.error(
+          `Failed to delete Google Calendar event for client ${booking.clientId} for booking ${booking.id}:`,
+          error,
+        );
+      }
+    }
+
     const CanceledBooking = await this.prismaService.booking.update({
       where: { id },
       data: {
         status: BookingStatus.CANCELLED,
         cancelledAt: new Date(),
         updatedAt: new Date(),
+        providerGoogleEventId: null,
+        clientGoogleEventId: null,
         notes: cancelBookingDto.reason
           ? (booking.notes || '') +
             `\nCancellation Reason: ${cancelBookingDto.reason}`
@@ -536,7 +616,7 @@ export class BookingService {
 
     const booking = await this.prismaService.booking.findUnique({
       where: { id },
-      include: { service: true },
+      include: { service: true, client: true, provider: true }, // Include client and provider for full booking details
     });
 
     if (!booking) {
@@ -572,7 +652,7 @@ export class BookingService {
       newBookingEndTime,
     );
 
-    return this.prismaService.booking.update({
+    const updatedBooking = await this.prismaService.booking.update({
       where: { id },
       data: {
         startTime: newBookingStartTime,
@@ -580,5 +660,39 @@ export class BookingService {
         updatedAt: new Date(),
       },
     });
+
+    if (booking.providerGoogleEventId) {
+      try {
+        await this.googleCalendarService.updateEvent(
+          booking.providerId,
+          booking.providerGoogleEventId,
+          booking as FullBooking,
+          'provider',
+        );
+      } catch (error) {
+        console.error(
+          `Failed to update Google Calendar event for provider ${booking.providerId} for booking ${booking.id}:`,
+          error,
+        );
+      }
+    }
+
+    if (booking.clientGoogleEventId) {
+      try {
+        await this.googleCalendarService.updateEvent(
+          booking.clientId,
+          booking.clientGoogleEventId,
+          booking as FullBooking,
+          'client',
+        );
+      } catch (error) {
+        console.error(
+          `Failed to update Google Calendar event for client ${booking.clientId} for booking ${booking.id}:`,
+          error,
+        );
+      }
+    }
+
+    return updatedBooking;
   }
 }

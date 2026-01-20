@@ -7,6 +7,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import { MailModule } from 'src/common/mail/mail.module';
 import { PaymentModule } from 'src/payment/payment.module';
+import { GoogleCalendarModule } from 'src/google-calendar/google-calendar.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { PaymentModule } from 'src/payment/payment.module';
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync(jwtConfig.asProvider()),
     forwardRef(() => MailModule),
+    GoogleCalendarModule,
   ],
   controllers: [BookingController],
   providers: [BookingService],
