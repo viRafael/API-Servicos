@@ -11,6 +11,9 @@ import { ConfigModule } from '@nestjs/config';
 import { MailModule } from 'src/common/mail/mail.module';
 import { BullModule } from '@nestjs/bullmq';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { AvailabilityModule } from 'src/availability/availability.module';
+import { WebhooksModule } from 'src/webhooks/webhooks.module';
+import { GoogleCalendarModule } from 'src/google-calendar/google-calendar.module';
 
 @Module({
   imports: [
@@ -29,6 +32,9 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     ServiceModule,
     UsersModule,
     MailModule,
+    AvailabilityModule,
+    WebhooksModule,
+    GoogleCalendarModule,
   ],
   controllers: [AppController],
   providers: [AppService],

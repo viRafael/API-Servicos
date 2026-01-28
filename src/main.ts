@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { env } from './utils/env-validator';
 import { AppModule } from './app/app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import * as bodyParser from 'body-parser';
 import * as express from 'express';
 
@@ -31,6 +31,7 @@ bootstrap()
     );
   })
   .catch((error) => {
-    console.log(error);
+    const logger = new Logger('Bootstrap');
+    logger.error(error);
     process.exit(1);
   });

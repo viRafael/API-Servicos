@@ -1,4 +1,5 @@
 import {
+  Body,
   ForbiddenException,
   Inject,
   Injectable,
@@ -16,6 +17,12 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { TokenPayloadDto } from './dto/token-payload.dto';
+import { RequestPasswordReset } from './dto/request-password-resert.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RESET_PASSWORD_KEY } from './auth.constants';
+import { MailQueue } from 'src/common/mail/mail.queue';
+import { env } from 'src/utils/env-validator';
+
 
 @Injectable()
 export class AuthService {
@@ -26,6 +33,7 @@ export class AuthService {
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
     private readonly jwtService: JwtService,
     private readonly prismaService: PrismaService,
+    private readonly mailQueue: MailQueue,
   ) {}
 
   private async generateToken<T>(
@@ -149,6 +157,53 @@ export class AuthService {
       };
     } catch (error) {
       throw new UnauthorizedException(error);
+    }
+  }
+
+  async sendForgetPasswordEmail(requestPasswordReset: RequestPasswordReset) {
+    // Verifica o email
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        email: requestPasswordReset.email,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Email not found');
+    }
+
+    // Cria o token
+    const emailToken = this.jwtService.sign(
+      { sub: requestPasswordReset.email, iss: RESET_PASSWORD_KEY },
+      { expiresIn: '10m' },
+    );
+
+    // Envia o email
+    await this.mailQueue.sendPasswordReset(
+      requestPasswordReset.email,
+      emailToken,
+    );
+
+    return {
+      message: 'Password reset email was send sucessfully',
+    };
+  }
+
+  async resetPassword(token: string, resetPasswordDto: ResetPasswordDto) {
+    try {
+      const tokenPayload = this.jwtService.verify<{ sub: string }>(token, {
+        secret: env.JWT_SECRET,
+        issuer: RESET_PASSWORD_KEY,
+        ignoreExpiration: false,
+      });
+
+      const hashedPassword = await this.hashsingService.hash(
+        resetPasswordDto.password,
+      );
+
+      await this.userService.updatePassword(tokenPayload.sub, hashedPassword);
+    } catch {
+      throw new ForbiddenException('Invalid or expired reset password token');
     }
   }
 }

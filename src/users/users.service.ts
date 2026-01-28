@@ -1,11 +1,13 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { HashingService } from 'src/auth/hashing/hasing.service';
 import { RegisterDto } from 'src/auth/dto/register.dto';
-import { TokenPayloadDto } from 'src/auth/dto/token-payload.dto';
-import { Roles } from 'src/auth/enum/roles.enum';
 import { UserRole } from '@prisma/client';
 
 @Injectable()
@@ -46,7 +48,7 @@ export class UsersService {
         phone: createUserDto.phone.replace(/\D/g, ''),
         role: createUserDto.role
           ? UserRole[createUserDto.role]
-          : UserRole.CLIENT, // Map to Prisma's UserRole
+          : UserRole.CLIENT,
       },
       omit: {
         password: true,
@@ -72,13 +74,16 @@ export class UsersService {
   findAllProviders() {
     return this.prismaService.user.findMany({
       where: {
-        role: UserRole.PROVIDER, // Use UserRole from Prisma
+        role: UserRole.PROVIDER,
       },
     });
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto) {
-    // Verifico se o existe o user com o ID fornecido
+  async update(
+    authenticatedId: number,
+    id: number,
+    updateUserDto: UpdateUserDto,
+  ) {
     const user = await this.prismaService.user.findUnique({
       where: {
         id,
@@ -86,22 +91,30 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new ForbiddenException('User not found.');
+      throw new NotFoundException('User not found');
     }
 
-    // Verifico se é o mesmo do user logado
-    if (id !== user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to update this user.',
-      );
+    if (user.id !== authenticatedId) {
+      throw new ForbiddenException('You are not allowed to update this user.');
     }
 
     return this.prismaService.user.update({
       where: {
-        id,
+        id: authenticatedId,
       },
       data: {
         ...updateUserDto,
+      },
+    });
+  }
+
+  async updatePassword(email: string, newPassword: string) {
+    return this.prismaService.user.update({
+      where: {
+        email: email,
+      },
+      data: {
+        password: newPassword,
       },
     });
   }
@@ -110,6 +123,9 @@ export class UsersService {
     return this.prismaService.user.findUnique({
       where: {
         id,
+      },
+      omit: {
+        password: true,
       },
     });
   }
@@ -122,12 +138,21 @@ export class UsersService {
     });
   }
 
-  remove(tokenPayload: TokenPayloadDto, idToDelete: number) {
-    if (tokenPayload.role !== Roles.ADMIN && tokenPayload.sub !== idToDelete) {
-      throw new ForbiddenException(
-        'You do not have permission to delete this user.',
-      );
+  async remove(authenticatedId: number, idToDelete: number) {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        id: idToDelete,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
+
+    if (user.id !== authenticatedId) {
+      throw new ForbiddenException('You are not allowed to remove this user.');
+    }
+
     return this.prismaService.user.delete({
       where: {
         id: idToDelete,

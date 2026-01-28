@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
@@ -21,6 +22,7 @@ import { GoogleCalendarService } from 'src/google-calendar/google-calendar.servi
 
 @Injectable()
 export class BookingService {
+  private readonly logger = new Logger(BookingService.name);
   constructor(
     private readonly prismaService: PrismaService,
     private readonly mailQueue: MailQueue,
@@ -115,16 +117,6 @@ export class BookingService {
     }
   }
 
-  attachPaymentIntent(bookingId: number, paymentIntentId: string) {
-    return this.prismaService.booking.update({
-      where: { id: bookingId },
-      data: {
-        paymentIntentId,
-        status: 'PENDING_PAYMENT',
-      },
-    });
-  }
-
   async confirmByPaymentIntent(paymentIntentId: string) {
     const bookingToConfirm = await this.prismaService.booking.findUnique({
       where: { paymentIntentId },
@@ -139,6 +131,31 @@ export class BookingService {
       throw new NotFoundException('Booking not found for this payment intent.');
     }
 
+    if (bookingToConfirm.status === BookingStatus.CONFIRMED) {
+      return this.getFullBooking(bookingToConfirm.id);
+    }
+
+    if (bookingToConfirm.status === BookingStatus.CANCELLED) {
+      throw new BadRequestException('Cannot confirm a cancelled booking.');
+    }
+
+    // Verifica se já existe um pagamento para evitar duplicação em caso de retries do webhook
+    const existingPayment = await this.prismaService.payment.findUnique({
+      where: { paymentIntentId: paymentIntentId },
+    });
+
+    if (!existingPayment) {
+      await this.prismaService.payment.create({
+        data: {
+          bookingId: bookingToConfirm.id,
+          userId: bookingToConfirm.clientId,
+          paymentIntentId: paymentIntentId,
+          amount: bookingToConfirm.service.price,
+          status: 'SUCCEEDED',
+        },
+      });
+    }
+
     let providerGoogleEventId: string | null = null;
     let clientGoogleEventId: string | null = null;
 
@@ -150,7 +167,7 @@ export class BookingService {
         'provider',
       );
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Failed to create Google Calendar event for provider ${bookingToConfirm.providerId} for booking ${bookingToConfirm.id}:`,
         error,
       );
@@ -164,7 +181,7 @@ export class BookingService {
         'client',
       );
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Failed to create Google Calendar event for client ${bookingToConfirm.clientId} for booking ${bookingToConfirm.id}:`,
         error,
       );
@@ -180,6 +197,9 @@ export class BookingService {
         clientGoogleEventId,
       },
     });
+
+    await this.mailQueue.sendBookingConfirmation(updatedBooking.id);
+    await this.mailQueue.sendPaymentConfirmed(updatedBooking.id);
 
     return this.getFullBooking(updatedBooking.id);
   }
@@ -204,7 +224,7 @@ export class BookingService {
 
   async findAvailableSlots(query: AvailableSlotsDto) {
     const { providerId, serviceId, date } = query;
-    const searchDate = new Date(date);
+    const baseDate = new Date(date);
 
     // Valida provider
     const provider = await this.prismaService.user.findUnique({
@@ -228,7 +248,11 @@ export class BookingService {
       throw new NotFoundException('Service not found for this provider.');
     }
 
-    const dayOfWeek = searchDate.getDay(); // Sunday - 0, Saturday - 6
+    if (!service.isActive) {
+      throw new BadRequestException('Service is not active.');
+    }
+
+    const dayOfWeek = baseDate.getDay(); // Sunday - 0, Saturday - 6
 
     // Pega as disponibilidades do provider para o dia especificado
     const availabilities = await this.prismaService.availability.findMany({
@@ -242,9 +266,11 @@ export class BookingService {
       return { message: 'Provider not available on this day.', slots: [] };
     }
 
-    // Pega agendamentos existentes para o provider para o dia especificado
-    const startOfDay = new Date(searchDate.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(searchDate.setHours(23, 59, 59, 999));
+    // Pega agendamentos existentes para o provider para o dia especificado (sem mutar baseDate)
+    const startOfDay = new Date(baseDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(baseDate);
+    endOfDay.setHours(23, 59, 59, 999);
 
     const existingBookings = await this.prismaService.booking.findMany({
       where: {
@@ -265,21 +291,21 @@ export class BookingService {
 
     const availableSlots: { startTime: Date; endTime: Date }[] = [];
     availabilities.forEach((availability) => {
-      let currentSlotStart = new Date(
-        searchDate.setHours(
-          parseInt(availability.startTime.split(':')[0]),
-          parseInt(availability.startTime.split(':')[1]),
-          0,
-          0,
-        ),
+      const dayCopy = new Date(baseDate.getTime());
+      dayCopy.setHours(
+        parseInt(availability.startTime.split(':')[0], 10),
+        parseInt(availability.startTime.split(':')[1], 10),
+        0,
+        0,
       );
-      const availabilityEnd = new Date(
-        searchDate.setHours(
-          parseInt(availability.endTime.split(':')[0]),
-          parseInt(availability.endTime.split(':')[1]),
-          0,
-          0,
-        ),
+      let currentSlotStart = new Date(dayCopy.getTime());
+
+      const availabilityEnd = new Date(baseDate.getTime());
+      availabilityEnd.setHours(
+        parseInt(availability.endTime.split(':')[0], 10),
+        parseInt(availability.endTime.split(':')[1], 10),
+        0,
+        0,
       );
 
       while (
@@ -295,8 +321,8 @@ export class BookingService {
 
         if (!isOverlapping && currentSlotStart >= new Date()) {
           availableSlots.push({
-            startTime: currentSlotStart,
-            endTime: currentSlotEnd,
+            startTime: new Date(currentSlotStart.getTime()),
+            endTime: new Date(currentSlotEnd.getTime()),
           });
         }
         currentSlotStart = addMinutes(currentSlotStart, service.duration);
@@ -323,8 +349,17 @@ export class BookingService {
       throw new NotFoundException('Service not found for this provider.');
     }
 
+    if (!service.isActive) {
+      throw new BadRequestException('Service is not active.');
+    }
+
     const bookingStartTime = new Date(startTime);
     const bookingEndTime = addMinutes(bookingStartTime, service.duration);
+
+    // Valida se o horário está no futuro
+    if (isBefore(bookingStartTime, new Date())) {
+      throw new BadRequestException('Start time cannot be in the past.');
+    }
 
     await this.validateSlotAvailability(
       providerId,
@@ -451,9 +486,11 @@ export class BookingService {
     }
 
     if (date) {
-      const searchDate = new Date(date);
-      const startOfDay = new Date(searchDate.setHours(0, 0, 0, 0));
-      const endOfDay = new Date(searchDate.setHours(23, 59, 59, 999));
+      const baseDate = new Date(date);
+      const startOfDay = new Date(baseDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(baseDate);
+      endOfDay.setHours(23, 59, 59, 999);
       where.startTime = {
         gte: startOfDay,
         lte: endOfDay,
@@ -481,13 +518,7 @@ export class BookingService {
   }
 
   async findOne(userId: number, id: number) {
-    const booking = await this.prismaService.booking.findUnique({
-      where: { id },
-    });
-
-    if (!booking) {
-      throw new NotFoundException('Booking not found.');
-    }
+    const booking = await this.getFullBooking(id);
 
     if (booking.clientId !== userId && booking.providerId !== userId) {
       throw new ForbiddenException(
@@ -514,9 +545,9 @@ export class BookingService {
           booking.providerGoogleEventId,
         );
       } catch (error) {
-        console.error(
+        this.logger.error(
           `Failed to delete Google Calendar event for provider ${booking.providerId} for booking ${booking.id}:`,
-          error,
+          error instanceof Error ? error.stack : error,
         );
       }
     }
@@ -528,9 +559,9 @@ export class BookingService {
           booking.clientGoogleEventId,
         );
       } catch (error) {
-        console.error(
+        this.logger.error(
           `Failed to delete Google Calendar event for client ${booking.clientId} for booking ${booking.id}:`,
-          error,
+          error instanceof Error ? error.stack : error,
         );
       }
     }
@@ -588,23 +619,22 @@ export class BookingService {
       );
     }
 
-    // Validar status
-    if (
-      booking.status === BookingStatus.COMPLETED ||
-      booking.status === BookingStatus.CANCELLED
-    ) {
+    // Validar status - apenas bookings confirmados podem ser completados
+    if (booking.status !== BookingStatus.CONFIRMED) {
       throw new BadRequestException(
-        `Booking cannot be completed as it is ${booking.status.toLowerCase()}.`,
+        `Booking cannot be completed. Current status: ${booking.status.toLowerCase()}. Only confirmed bookings can be completed.`,
       );
     }
 
-    return this.prismaService.booking.update({
+    await this.prismaService.booking.update({
       where: { id },
       data: {
         status: BookingStatus.COMPLETED,
         completedAt: new Date(),
       },
     });
+
+    return this.getFullBooking(id);
   }
 
   async reschedule(
@@ -616,7 +646,7 @@ export class BookingService {
 
     const booking = await this.prismaService.booking.findUnique({
       where: { id },
-      include: { service: true, client: true, provider: true }, // Include client and provider for full booking details
+      include: { service: true, client: true, provider: true },
     });
 
     if (!booking) {
@@ -652,7 +682,7 @@ export class BookingService {
       newBookingEndTime,
     );
 
-    const updatedBooking = await this.prismaService.booking.update({
+    await this.prismaService.booking.update({
       where: { id },
       data: {
         startTime: newBookingStartTime,
@@ -661,16 +691,18 @@ export class BookingService {
       },
     });
 
+    const fullBooking = await this.getFullBooking(id);
+
     if (booking.providerGoogleEventId) {
       try {
         await this.googleCalendarService.updateEvent(
           booking.providerId,
           booking.providerGoogleEventId,
-          booking as FullBooking,
+          fullBooking,
           'provider',
         );
       } catch (error) {
-        console.error(
+        this.logger.error(
           `Failed to update Google Calendar event for provider ${booking.providerId} for booking ${booking.id}:`,
           error,
         );
@@ -682,17 +714,17 @@ export class BookingService {
         await this.googleCalendarService.updateEvent(
           booking.clientId,
           booking.clientGoogleEventId,
-          booking as FullBooking,
+          fullBooking,
           'client',
         );
       } catch (error) {
-        console.error(
+        this.logger.error(
           `Failed to update Google Calendar event for client ${booking.clientId} for booking ${booking.id}:`,
           error,
         );
       }
     }
 
-    return updatedBooking;
+    return fullBooking;
   }
 }

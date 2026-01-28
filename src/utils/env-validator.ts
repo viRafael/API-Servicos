@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import * as Joi from '@hapi/joi';
+import * as Joi from 'joi';
 
 dotenv.config();
 
@@ -68,4 +68,4 @@ if (validationResult.error) {
   process.exit(1);
 }
 
-export const env = validationResult.value as EnvVars;
+export const env = validationResult.value;

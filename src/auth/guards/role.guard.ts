@@ -33,6 +33,11 @@ export class RoleGuard implements CanActivate {
 
     const actualRole = tokenPayload.role;
 
+    // Se é ADMIN pode passar
+    if (actualRole === Roles.ADMIN) {
+      return true;
+    }
+
     const hasPermission = rolesRequireds.includes(actualRole);
 
     if (!hasPermission) {

@@ -25,11 +25,14 @@ export class ServiceController {
 
   @UseGuards(AuthTokenGuard)
   @Post()
-  create(@Body() createServiceDto: CreateServiceDto) {
-    return this.serviceService.create(createServiceDto);
+  create(
+    @TokenPayloadParam() tokenPayload: TokenPayloadDto,
+    @Body() createServiceDto: CreateServiceDto,
+  ) {
+    return this.serviceService.create(tokenPayload.sub, createServiceDto);
   }
 
-  @Get()
+  @Get('all-services')
   findAll() {
     return this.serviceService.findAll();
   }

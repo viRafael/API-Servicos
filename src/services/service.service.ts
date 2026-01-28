@@ -7,8 +7,6 @@ import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { UsersService } from 'src/users/users.service';
-import { SetRoleAccess } from 'src/auth/decorator/set-role.decorator';
-import { Roles } from 'src/auth/enum/roles.enum';
 import { UserRole } from '@prisma/client';
 
 @Injectable()
@@ -18,8 +16,8 @@ export class ServiceService {
     private readonly usersService: UsersService,
   ) {}
 
-  async create(createServiceDto: CreateServiceDto) {
-    const user = await this.usersService.findOne(createServiceDto.providerId);
+  async create(authenticatedId: number, createServiceDto: CreateServiceDto) {
+    const user = await this.usersService.findOne(authenticatedId);
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -27,12 +25,13 @@ export class ServiceService {
 
     const service = await this.prismaService.service.create({
       data: {
+        providerId: authenticatedId,
         ...createServiceDto,
       },
     });
 
     if (user.role !== UserRole.PROVIDER) {
-      await this.usersService.updateRoleToProvider(createServiceDto.providerId);
+      await this.usersService.updateRoleToProvider(authenticatedId);
     }
 
     return service;
@@ -42,10 +41,10 @@ export class ServiceService {
     return this.prismaService.service.findMany();
   }
 
-  findAllMyService(id: number) {
+  findAllMyService(authenticatedId: number) {
     return this.prismaService.service.findMany({
       where: {
-        providerId: id,
+        providerId: authenticatedId,
       },
     });
   }

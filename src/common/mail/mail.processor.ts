@@ -13,23 +13,46 @@ export class MailProcessor extends WorkerHost {
   }
 
   async process(job: Job) {
-    const { bookingId, reason } = job.data;
-
-    const booking = await this.bookingService.getFullBooking(bookingId);
-
     switch (job.name) {
       case 'send-booking-confirmation':
-        await this.mailService.sendBookingConfirmation(booking);
+        await this.sendBookingConfirmation(job);
         break;
 
       case 'send-cancellation': {
-        await this.mailService.sendCancellationNotice(booking, reason);
+        await this.sendCancellation(job);
         break;
       }
 
       case 'send-payment-confirmed':
-        await this.mailService.sendPaymentConfirmed(booking);
+        await this.sendPaymentConfirmed(job);
+        break;
+
+      case 'send-password-reset':
+        await this.sendPasswordReset(job);
         break;
     }
+  }
+
+  async sendBookingConfirmation(job: Job) {
+    const { bookingId } = job.data;
+    const booking = await this.bookingService.getFullBooking(bookingId);
+    await this.mailService.sendBookingConfirmation(booking);
+  }
+
+  async sendCancellation(job: Job) {
+    const { bookingId, reason } = job.data;
+    const booking = await this.bookingService.getFullBooking(bookingId);
+    await this.mailService.sendCancellationNotice(booking, reason);
+  }
+
+  async sendPaymentConfirmed(job: Job) {
+    const { bookingId } = job.data;
+    const booking = await this.bookingService.getFullBooking(bookingId);
+    await this.mailService.sendPaymentConfirmed(booking);
+  }
+
+  async sendPasswordReset(job: Job) {
+    const { email, emailToken } = job.data;
+    await this.mailService.sendPasswordReset(email, emailToken);
   }
 }

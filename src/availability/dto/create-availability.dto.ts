@@ -11,7 +11,4 @@ export class CreateAvailabilityDto {
   @IsString()
   @IsNotEmpty()
   endTime: string; // "18:00"
-
-  @IsNumber()
-  providerId: number;
 }

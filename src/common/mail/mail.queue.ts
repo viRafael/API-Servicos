@@ -27,4 +27,8 @@ export class MailQueue {
       bookingId,
     });
   }
+
+  async sendPasswordReset(email: string, emailToken: string) {
+    await this.mailQueue.add('send-password-reset', { email, emailToken });
+  }
 }

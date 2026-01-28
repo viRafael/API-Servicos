@@ -11,30 +11,19 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 export class AvailabilityService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  create(createAvailabilityDto: CreateAvailabilityDto) {
+  create(providerId: number, createAvailabilityDto: CreateAvailabilityDto) {
     return this.prismaService.availability.create({
       data: {
+        providerId,
         ...createAvailabilityDto,
       },
     });
   }
 
-  findAll() {
-    return this.prismaService.availability.findMany();
-  }
-
-  findMyAvailability(idAuthenticated: number) {
-    return this.prismaService.availability.findUnique({
+  findMyAvailabilities(idAuthenticated: number) {
+    return this.prismaService.availability.findMany({
       where: {
-        id: idAuthenticated,
-      },
-    });
-  }
-
-  findOne(id: number) {
-    return this.prismaService.availability.findUnique({
-      where: {
-        id,
+        providerId: idAuthenticated,
       },
     });
   }
@@ -51,12 +40,12 @@ export class AvailabilityService {
     });
 
     if (!availability) {
-      throw new NotFoundException('Service not found');
+      throw new NotFoundException('Availability not found');
     }
 
     if (availability.providerId !== idAuthenticated) {
       throw new ForbiddenException(
-        'You are not allowed to update this service.',
+        'You are not allowed to update this availability.',
       );
     }
 
@@ -79,12 +68,12 @@ export class AvailabilityService {
     });
 
     if (!availability) {
-      throw new NotFoundException('Service not found');
+      throw new NotFoundException('Availability not found');
     }
 
     if (availability.providerId !== idAuthenticated) {
       throw new ForbiddenException(
-        'You are not allowed to update this service.',
+        'You are not allowed to remove this availability.',
       );
     }
 

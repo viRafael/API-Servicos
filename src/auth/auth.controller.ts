@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -8,6 +16,8 @@ import { UsersService } from 'src/users/users.service';
 import { AuthTokenGuard } from './guards/auth-token.guard';
 import { UpdateUserDto } from 'src/users/dto/update-user.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { RequestPasswordReset } from './dto/request-password-resert.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -38,11 +48,28 @@ export class AuthController {
     @TokenPayloadParam() tokenPayload: TokenPayloadDto,
     @Body() updateUser: UpdateUserDto,
   ) {
-    return this.userService.update(tokenPayload.sub, updateUser);
+    return this.userService.update(
+      tokenPayload.sub,
+      tokenPayload.sub,
+      updateUser,
+    );
   }
 
   @Post('refresh')
   refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto);
+  }
+
+  @Post('forgot-password')
+  requestPasswordReset(@Body() requestPasswordDto: RequestPasswordReset) {
+    return this.authService.sendForgetPasswordEmail(requestPasswordDto);
+  }
+
+  @Post('reset-password')
+  resetPassword(
+    @Query('token') token: string,
+    @Body() resetPasswordDto: ResetPasswordDto,
+  ) {
+    return this.authService.resetPassword(token, resetPasswordDto);
   }
 }

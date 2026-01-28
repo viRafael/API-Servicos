@@ -21,12 +21,4 @@ export class CreateReviewDto {
   @IsNumber()
   @IsPositive()
   bookingId: number;
-
-  @IsNumber()
-  @IsPositive()
-  clientId: number;
-
-  @IsNumber()
-  @IsPositive()
-  providerId: number;
 }

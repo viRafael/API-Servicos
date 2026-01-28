@@ -24,42 +24,48 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @SetRoleAccess(Roles.ADMIN)
-  @UseGuards(RoleGuard)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
+  @UseGuards(AuthTokenGuard)
   @Get()
   findAll() {
     return this.usersService.findAll();
   }
 
-  @Get('providers')
+  @UseGuards(AuthTokenGuard)
+  @Get('all-providers')
   findAllProviders() {
     return this.usersService.findAllProviders();
   }
 
+  @UseGuards(AuthTokenGuard)
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);
   }
 
-  @UseGuards(AuthTokenGuard)
+  @SetRoleAccess(Roles.ADMIN)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Patch(':id')
   update(
     @TokenPayloadParam() tokenPayload: TokenPayloadDto,
     @Body() updateUserDto: UpdateUserDto,
+    @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.usersService.update(tokenPayload.sub, updateUserDto);
+    return this.usersService.update(tokenPayload.sub, id, updateUserDto);
   }
 
-  @UseGuards(AuthTokenGuard)
+  @SetRoleAccess(Roles.ADMIN)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Delete(':id')
   remove(
     @TokenPayloadParam() tokenPayload: TokenPayloadDto,
     @Param('id', ParseIntPipe) idToDelete: number,
   ) {
-    return this.usersService.remove(tokenPayload, idToDelete);
+    return this.usersService.remove(tokenPayload.sub, idToDelete);
   }
 }

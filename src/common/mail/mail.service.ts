@@ -52,8 +52,6 @@ export class MailService {
     } catch (error) {
       this.logger.error(`Failed to send email to ${to}`, error);
     }
-
-    console.log('chegou no fim');
   }
 
   async sendBookingConfirmation(booking: FullBooking) {
@@ -130,6 +128,27 @@ export class MailService {
     } catch (error) {
       this.logger.error(
         `Failed to send payment confirmation for booking ID: ${booking.id}`,
+        error,
+      );
+    }
+  }
+
+  async sendPasswordReset(email: string, emailToken: string) {
+    try {
+      const html = renderTemplate('password-reset', {
+        clientName: 'Usuário',
+        emailToken,
+        year: new Date().getFullYear(),
+      });
+
+      await this.sendEmail({
+        to: email,
+        subject: 'Mudança de senha - API Servicos',
+        html,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send password reset for email: ${email}`,
         error,
       );
     }

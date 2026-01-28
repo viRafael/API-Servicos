@@ -23,32 +23,30 @@ import { TokenPayloadDto } from 'src/auth/dto/token-payload.dto';
 export class AvailabilityController {
   constructor(private readonly availabilityService: AvailabilityService) {}
 
-  @SetRoleAccess(Roles.PROVIDER)
+  @SetRoleAccess(Roles.PROVIDER, Roles.ADMIN)
   @UseGuards(AuthTokenGuard, RoleGuard)
   @Post()
-  create(@Body() createAvailabilityDto: CreateAvailabilityDto) {
-    return this.availabilityService.create(createAvailabilityDto);
+  create(
+    @TokenPayloadParam() tokenPayload: TokenPayloadDto,
+    @Body() createAvailabilityDto: CreateAvailabilityDto,
+  ) {
+    return this.availabilityService.create(
+      tokenPayload.sub,
+      createAvailabilityDto,
+    );
   }
 
-  @Get()
-  findAll() {
-    return this.availabilityService.findAll();
-  }
-
-  @SetRoleAccess(Roles.PROVIDER)
+  @SetRoleAccess(Roles.PROVIDER, Roles.ADMIN)
   @UseGuards(AuthTokenGuard, RoleGuard)
   @Get()
-  findMyAvailability(@TokenPayloadParam() tokenPayload: TokenPayloadDto) {
-    return this.availabilityService.findMyAvailability(tokenPayload.sub);
+  findMyAvailabilities(@TokenPayloadParam() tokenPayload: TokenPayloadDto) {
+    return this.availabilityService.findMyAvailabilities(tokenPayload.sub);
   }
 
-  @Get('provider/:id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.availabilityService.findOne(id);
-  }
-
+  @SetRoleAccess(Roles.PROVIDER, Roles.ADMIN)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Patch(':id')
-  update(
+  updateProviderAvailability(
     @TokenPayloadParam() tokenPayload: TokenPayloadDto,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateAvailabilityDto: UpdateAvailabilityDto,
@@ -60,8 +58,10 @@ export class AvailabilityController {
     );
   }
 
+  @SetRoleAccess(Roles.PROVIDER, Roles.ADMIN)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Delete(':id')
-  remove(
+  removeProviderAvailability(
     @TokenPayloadParam() tokenPayload: TokenPayloadDto,
     @Param('id', ParseIntPipe) id: number,
   ) {

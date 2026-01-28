@@ -12,11 +12,11 @@ import { GoogleCalendarModule } from 'src/google-calendar/google-calendar.module
 @Module({
   imports: [
     PrismaModule,
-    PaymentModule,
+    forwardRef(() => PaymentModule),
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync(jwtConfig.asProvider()),
     forwardRef(() => MailModule),
-    GoogleCalendarModule,
+    forwardRef(() => GoogleCalendarModule),
   ],
   controllers: [BookingController],
   providers: [BookingService],

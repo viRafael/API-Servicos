@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsNumber } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 import { Roles } from '../enum/roles.enum';
 
 export class TokenPayloadDto {
@@ -19,10 +19,10 @@ export class TokenPayloadDto {
   exp: number;
 
   @IsNotEmpty()
-  @IsNumber()
+  @IsString()
   aud: string;
 
   @IsNotEmpty()
-  @IsNumber()
+  @IsString()
   iss: string;
 }

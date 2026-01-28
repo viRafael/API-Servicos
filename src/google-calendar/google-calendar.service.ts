@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { google } from 'googleapis';
 import { FullBooking } from 'src/booking/types/booking.type';
 import { PrismaService } from 'src/common/prisma/prisma.service';
@@ -6,6 +10,7 @@ import { env } from 'src/utils/env-validator';
 
 @Injectable()
 export class GoogleCalendarService {
+  private readonly logger = new Logger(GoogleCalendarService.name);
   constructor(private readonly prismaService: PrismaService) {}
 
   private getOAuthClient() {
@@ -22,7 +27,9 @@ export class GoogleCalendarService {
     });
 
     if (!user?.googleRefreshToken) {
-      throw new Error('Usuário não conectado ao Google Calendar');
+      throw new InternalServerErrorException(
+        'Usuário não conectado ao Google Calendar',
+      );
     }
 
     const oauth2Client = this.getOAuthClient();
@@ -49,7 +56,7 @@ export class GoogleCalendarService {
     const { tokens } = await oauth2Client.getToken(code);
 
     if (!tokens.refresh_token) {
-      throw new Error('Refresh token não retornado');
+      throw new InternalServerErrorException('Refresh token não retornado');
     }
 
     await this.prismaService.user.update({
@@ -99,7 +106,7 @@ export class GoogleCalendarService {
 
       return event.data.id;
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Failed to create Google Calendar event for user ${userId} (${forWhom}):`,
         error,
       );
@@ -138,7 +145,7 @@ export class GoogleCalendarService {
         },
       });
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Failed to update Google Calendar event ${eventId} for user ${userId} (${forWhom}):`,
         error,
       );
@@ -154,7 +161,7 @@ export class GoogleCalendarService {
         eventId: eventId,
       });
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Failed to delete Google Calendar event ${eventId} for user ${userId}:`,
         error,
       );
