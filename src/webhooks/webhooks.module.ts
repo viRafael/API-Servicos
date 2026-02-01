@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { BookingModule } from 'src/booking/booking.module';
+import { BookingModule } from 'src/payment/booking/booking.module';
 import { MailModule } from 'src/common/mail/mail.module';
 import { PaymentModule } from 'src/payment/payment.module';
 import { StripeWebhookController } from './stripe/webhook-stripe.controller';

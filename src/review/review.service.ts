@@ -51,10 +51,12 @@ export class ReviewService {
     });
   }
 
-  findAllAsProvider(idProvider: number) {
+  findAll(serviceId: number) {
     return this.prismaService.review.findMany({
       where: {
-        providerId: idProvider,
+        booking: {
+          serviceId: serviceId,
+        },
       },
     });
   }
@@ -67,11 +69,7 @@ export class ReviewService {
     });
   }
 
-  async update(
-    idAuthenticated: number,
-    id: number,
-    updateReviewDto: UpdateReviewDto,
-  ) {
+  async remove(id: number) {
     const review = await this.prismaService.review.findUnique({
       where: {
         id,
@@ -80,39 +78,6 @@ export class ReviewService {
 
     if (!review) {
       throw new NotFoundException('Review not found');
-    }
-
-    if (review.clientId !== idAuthenticated) {
-      throw new ForbiddenException(
-        'You are not allowed to update this review.',
-      );
-    }
-
-    return this.prismaService.review.update({
-      where: {
-        id,
-      },
-      data: {
-        ...updateReviewDto,
-      },
-    });
-  }
-
-  async remove(idAuthenticated: number, id: number) {
-    const review = await this.prismaService.review.findUnique({
-      where: {
-        id,
-      },
-    });
-
-    if (!review) {
-      throw new NotFoundException('Review not found');
-    }
-
-    if (review.clientId !== idAuthenticated) {
-      throw new ForbiddenException(
-        'You are not allowed to remove this review.',
-      );
     }
 
     return this.prismaService.review.delete({

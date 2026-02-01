@@ -18,6 +18,8 @@ import { UpdateUserDto } from 'src/users/dto/update-user.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RequestPasswordReset } from './dto/request-password-resert.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { Public } from './decorator/public.decorator';
+import { RoleGuard } from './guards/role.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -26,28 +28,31 @@ export class AuthController {
     private readonly userService: UsersService,
   ) {}
 
+  @Public()
   @Post('login')
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
 
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Post('/logout')
   logout(@TokenPayloadParam() tokenPayload: TokenPayloadDto) {
     return this.authService.logout(tokenPayload.sub);
   }
 
+  @Public()
   @Post('register')
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
-  @UseGuards(AuthTokenGuard)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Get('me')
   getUserInformation(@TokenPayloadParam() tokenPayload: TokenPayloadDto) {
     return this.userService.findOne(tokenPayload.sub);
   }
 
-  @UseGuards(AuthTokenGuard)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Patch('me')
   patchUserInformation(
     @TokenPayloadParam() tokenPayload: TokenPayloadDto,
@@ -65,6 +70,7 @@ export class AuthController {
     return this.authService.refreshToken(refreshTokenDto);
   }
 
+  @Public()
   @Post('forgot-password')
   requestPasswordReset(@Body() requestPasswordDto: RequestPasswordReset) {
     return this.authService.sendForgetPasswordEmail(requestPasswordDto);

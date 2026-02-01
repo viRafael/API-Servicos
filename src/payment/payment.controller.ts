@@ -7,6 +7,7 @@ import {
   Delete,
   ParseIntPipe,
   UseGuards,
+  Post,
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
@@ -14,27 +15,44 @@ import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
 import { RoleGuard } from 'src/auth/guards/role.guard';
 import { SetRoleAccess } from 'src/auth/decorator/set-role.decorator';
 import { Roles } from 'src/auth/enum/roles.enum';
+import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
+import { TokenPayloadDto } from 'src/auth/dto/token-payload.dto';
+import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 
 @Controller('payment')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
+  @SetRoleAccess(Roles.CLIENT)
   @UseGuards(AuthTokenGuard, RoleGuard)
-  @SetRoleAccess(Roles.ADMIN)
+  @Post('create-intent')
+  createIntent(
+    @TokenPayloadParam() tokenPayload: TokenPayloadDto,
+    @Body() createPaymentIntentDto: CreatePaymentIntentDto,
+  ) {
+    return this.paymentService.createIntent(
+      tokenPayload.sub,
+      createPaymentIntentDto,
+    );
+  }
+
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Get()
   findAll() {
     return this.paymentService.findAll();
   }
 
   @UseGuards(AuthTokenGuard, RoleGuard)
-  @SetRoleAccess(Roles.ADMIN)
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.paymentService.findOne(id);
+  findOne(
+    @TokenPayloadParam() tokenPayload: TokenPayloadDto,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.paymentService.findOne(tokenPayload.sub, id);
   }
 
-  @UseGuards(AuthTokenGuard, RoleGuard)
   @SetRoleAccess(Roles.ADMIN)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -43,8 +61,8 @@ export class PaymentController {
     return this.paymentService.update(id, updatePaymentDto);
   }
 
-  @UseGuards(AuthTokenGuard, RoleGuard)
   @SetRoleAccess(Roles.ADMIN)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.paymentService.remove(id);

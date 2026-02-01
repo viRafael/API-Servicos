@@ -8,22 +8,23 @@ import {
   Delete,
   ParseIntPipe,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { AvailabilityService } from './availability.service';
 import { CreateAvailabilityDto } from './dto/create-availability.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
-import { Roles } from 'src/auth/enum/roles.enum';
-import { SetRoleAccess } from 'src/auth/decorator/set-role.decorator';
 import { RoleGuard } from 'src/auth/guards/role.guard';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { TokenPayloadDto } from 'src/auth/dto/token-payload.dto';
+import { SetRoleAccess } from 'src/auth/decorator/set-role.decorator';
+import { Roles } from 'src/auth/enum/roles.enum';
 
 @Controller('availability')
 export class AvailabilityController {
   constructor(private readonly availabilityService: AvailabilityService) {}
 
-  @SetRoleAccess(Roles.PROVIDER, Roles.ADMIN)
+  @SetRoleAccess(Roles.PROVIDER)
   @UseGuards(AuthTokenGuard, RoleGuard)
   @Post()
   create(
@@ -36,14 +37,19 @@ export class AvailabilityController {
     );
   }
 
-  @SetRoleAccess(Roles.PROVIDER, Roles.ADMIN)
-  @UseGuards(AuthTokenGuard, RoleGuard)
   @Get()
+  findAll(@Query('providerId', ParseIntPipe) providerId: number) {
+    return this.availabilityService.findAll(providerId);
+  }
+
+  @SetRoleAccess(Roles.PROVIDER)
+  @UseGuards(AuthTokenGuard, RoleGuard)
+  @Get('my-availabilities')
   findMyAvailabilities(@TokenPayloadParam() tokenPayload: TokenPayloadDto) {
     return this.availabilityService.findMyAvailabilities(tokenPayload.sub);
   }
 
-  @SetRoleAccess(Roles.PROVIDER, Roles.ADMIN)
+  @SetRoleAccess(Roles.PROVIDER)
   @UseGuards(AuthTokenGuard, RoleGuard)
   @Patch(':id')
   updateProviderAvailability(
@@ -57,8 +63,7 @@ export class AvailabilityController {
       updateAvailabilityDto,
     );
   }
-
-  @SetRoleAccess(Roles.PROVIDER, Roles.ADMIN)
+  @SetRoleAccess(Roles.PROVIDER)
   @UseGuards(AuthTokenGuard, RoleGuard)
   @Delete(':id')
   removeProviderAvailability(

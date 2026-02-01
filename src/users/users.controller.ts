@@ -12,18 +12,16 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { SetRoleAccess } from 'src/auth/decorator/set-role.decorator';
-import { Roles } from 'src/auth/enum/roles.enum';
 import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { TokenPayloadDto } from 'src/auth/dto/token-payload.dto';
 import { RoleGuard } from 'src/auth/guards/role.guard';
+import { Public } from 'src/auth/decorator/public.decorator';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @SetRoleAccess(Roles.ADMIN)
   @UseGuards(AuthTokenGuard, RoleGuard)
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
@@ -42,13 +40,13 @@ export class UsersController {
     return this.usersService.findAllProviders();
   }
 
+  @Public()
   @UseGuards(AuthTokenGuard)
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);
   }
 
-  @SetRoleAccess(Roles.ADMIN)
   @UseGuards(AuthTokenGuard, RoleGuard)
   @Patch(':id')
   update(
@@ -59,7 +57,6 @@ export class UsersController {
     return this.usersService.update(tokenPayload.sub, id, updateUserDto);
   }
 
-  @SetRoleAccess(Roles.ADMIN)
   @UseGuards(AuthTokenGuard, RoleGuard)
   @Delete(':id')
   remove(

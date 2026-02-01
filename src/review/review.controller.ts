@@ -5,13 +5,12 @@ import {
   Body,
   Param,
   Delete,
-  Patch,
   ParseIntPipe,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ReviewService } from './review.service';
 import { CreateReviewDto } from './dto/create-review.dto';
-import { UpdateReviewDto } from './dto/update-review.dto';
 import { AuthTokenGuard } from 'src/auth/guards/auth-token.guard';
 import { SetRoleAccess } from 'src/auth/decorator/set-role.decorator';
 import { Roles } from 'src/auth/enum/roles.enum';
@@ -33,34 +32,24 @@ export class ReviewController {
     return this.reviewService.create(tokenPayload.sub, createReviewDto);
   }
 
-  @SetRoleAccess(Roles.PROVIDER)
+  @SetRoleAccess(Roles.CLIENT)
   @UseGuards(AuthTokenGuard, RoleGuard)
   @Get()
-  findAllAsProvider(@TokenPayloadParam() tokenPayload: TokenPayloadDto) {
-    return this.reviewService.findAllAsProvider(tokenPayload.sub);
+  findAll(@Query('serviceId', ParseIntPipe) serviceId: number) {
+    return this.reviewService.findAll(serviceId);
   }
 
+  @SetRoleAccess(Roles.CLIENT)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.reviewService.findOne(id);
   }
 
-  @UseGuards(AuthTokenGuard)
-  @Patch(':id')
-  update(
-    @TokenPayloadParam() tokenPayload: TokenPayloadDto,
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateReviewDto: UpdateReviewDto,
-  ) {
-    return this.reviewService.update(tokenPayload.sub, id, updateReviewDto);
-  }
-
-  @UseGuards(AuthTokenGuard)
+  @SetRoleAccess(Roles.ADMIN)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Delete(':id')
-  remove(
-    @TokenPayloadParam() tokenPayload: TokenPayloadDto,
-    @Param('id', ParseIntPipe) id: number,
-  ) {
-    return this.reviewService.remove(tokenPayload.sub, id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.reviewService.remove(id);
   }
 }

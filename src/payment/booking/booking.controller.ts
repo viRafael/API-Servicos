@@ -21,18 +21,20 @@ import { Roles } from 'src/auth/enum/roles.enum';
 import { RoleGuard } from 'src/auth/guards/role.guard';
 import { TokenPayloadParam } from 'src/auth/params/token-payload.param';
 import { TokenPayloadDto } from 'src/auth/dto/token-payload.dto';
+import { Public } from 'src/auth/decorator/public.decorator';
 
 @Controller('booking')
 export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
 
+  @Public()
   @Get('available-slots')
   findAvailableSlots(@Query() query: AvailableSlotsDto) {
     return this.bookingService.findAvailableSlots(query);
   }
 
-  @UseGuards(AuthTokenGuard, RoleGuard)
   @SetRoleAccess(Roles.CLIENT)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Post()
   create(
     @TokenPayloadParam() tokenPayload: TokenPayloadDto,
@@ -41,8 +43,8 @@ export class BookingController {
     return this.bookingService.create(tokenPayload.sub, createBookingDto);
   }
 
+  @SetRoleAccess(Roles.CLIENT)
   @UseGuards(AuthTokenGuard, RoleGuard)
-  @SetRoleAccess(Roles.CLIENT, Roles.PROVIDER)
   @Get()
   findAll(
     @TokenPayloadParam() tokenPayload: TokenPayloadDto,
@@ -55,15 +57,15 @@ export class BookingController {
     );
   }
 
-  @UseGuards(AuthTokenGuard, RoleGuard)
   @SetRoleAccess(Roles.CLIENT)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Get('my-bookings')
   findMyBookingsAsClient(@TokenPayloadParam() tokenPayload: TokenPayloadDto) {
     return this.bookingService.findMyBookingsAsClient(tokenPayload.sub);
   }
 
-  @UseGuards(AuthTokenGuard, RoleGuard)
   @SetRoleAccess(Roles.PROVIDER)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Get('as-provider')
   findBookingsAsProvider(
     @TokenPayloadParam() tokenPayload: TokenPayloadDto,
@@ -72,6 +74,7 @@ export class BookingController {
     return this.bookingService.findBookingsAsProvider(tokenPayload.sub, query);
   }
 
+  @SetRoleAccess(Roles.CLIENT)
   @UseGuards(AuthTokenGuard)
   @Get(':id')
   findOne(
@@ -81,8 +84,8 @@ export class BookingController {
     return this.bookingService.findOne(tokenPayload.sub, id);
   }
 
+  @SetRoleAccess(Roles.CLIENT)
   @UseGuards(AuthTokenGuard, RoleGuard)
-  @SetRoleAccess(Roles.CLIENT, Roles.PROVIDER)
   @Patch(':id/cancel')
   cancel(
     @TokenPayloadParam() tokenPayload: TokenPayloadDto,
@@ -92,8 +95,8 @@ export class BookingController {
     return this.bookingService.cancel(tokenPayload.sub, id, cancelBookingDto);
   }
 
+  @SetRoleAccess(Roles.CLIENT)
   @UseGuards(AuthTokenGuard, RoleGuard)
-  @SetRoleAccess(Roles.PROVIDER)
   @Patch(':id/complete')
   complete(
     @TokenPayloadParam() tokenPayload: TokenPayloadDto,
@@ -102,8 +105,8 @@ export class BookingController {
     return this.bookingService.complete(tokenPayload.sub, id);
   }
 
-  @UseGuards(AuthTokenGuard, RoleGuard)
   @SetRoleAccess(Roles.CLIENT, Roles.PROVIDER)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Patch(':id/reschedule')
   reschedule(
     @TokenPayloadParam() tokenPayload: TokenPayloadDto,

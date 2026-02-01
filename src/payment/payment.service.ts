@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import Stripe from 'stripe';
+import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 
 @Injectable()
 export class PaymentService {
@@ -11,20 +12,45 @@ export class PaymentService {
     private readonly stripe: Stripe,
   ) {}
 
-  async createPaymentIntent(bookingId: number, amount: number) {
+  async createIntent(
+    clientId: number,
+    createPaymentIntentDto: CreatePaymentIntentDto,
+  ) {
+    const booking = await this.prismaService.booking.findUnique({
+      where: { id: createPaymentIntentDto.bookingId },
+      include: { service: true },
+    });
+
+    if (!booking) {
+      throw new Error('Booking not found');
+    }
+
+    if (booking.clientId !== clientId) {
+      throw new Error('You are not the owner of this booking');
+    }
+
     const paymentIntent = await this.stripe.paymentIntents.create({
-      amount: amount * 100, // centavos
+      amount: booking.service.price * 100, // centavos
       currency: 'brl',
       metadata: {
-        bookingId: bookingId,
+        bookingId: booking.id,
       },
       automatic_payment_methods: {
         enabled: true,
       },
     });
 
+    await this.prismaService.payment.create({
+      data: {
+        bookingId: booking.id,
+        userId: clientId,
+        amount: booking.service.price,
+        paymentIntentId: paymentIntent.id,
+      },
+    });
+
     await this.prismaService.booking.update({
-      where: { id: bookingId },
+      where: { id: booking.id },
       data: { paymentIntentId: paymentIntent.id },
     });
 
@@ -37,12 +63,29 @@ export class PaymentService {
     return this.prismaService.payment.findMany();
   }
 
-  findOne(id: number) {
-    return this.prismaService.payment.findUnique({
+  async findOne(userId: number, id: number) {
+    const payment = await this.prismaService.payment.findUnique({
       where: {
         id,
       },
+      include: {
+        booking: {
+          include: {
+            provider: true,
+          },
+        },
+      },
     });
+
+    if (!payment) {
+      throw new Error('Payment not found');
+    }
+
+    if (payment.userId !== userId && payment.booking.provider.id !== userId) {
+      throw new Error('You are not allowed to view this payment');
+    }
+
+    return payment;
   }
 
   update(id: number, updatePaymentDto: UpdatePaymentDto) {

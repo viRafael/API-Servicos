@@ -18,12 +18,14 @@ import { TokenPayloadDto } from 'src/auth/dto/token-payload.dto';
 import { RoleGuard } from 'src/auth/guards/role.guard';
 import { SetRoleAccess } from 'src/auth/decorator/set-role.decorator';
 import { Roles } from 'src/auth/enum/roles.enum';
+import { Public } from 'src/auth/decorator/public.decorator';
 
 @Controller('service')
 export class ServiceController {
   constructor(private readonly serviceService: ServiceService) {}
 
-  @UseGuards(AuthTokenGuard)
+  @SetRoleAccess(Roles.PROVIDER)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Post()
   create(
     @TokenPayloadParam() tokenPayload: TokenPayloadDto,
@@ -32,24 +34,22 @@ export class ServiceController {
     return this.serviceService.create(tokenPayload.sub, createServiceDto);
   }
 
+  @Public()
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Get('all-services')
   findAll() {
     return this.serviceService.findAll();
   }
 
+  @Public()
   @UseGuards(AuthTokenGuard, RoleGuard)
-  @SetRoleAccess(Roles.PROVIDER)
-  @Get('my-services')
-  findAllMyService(@TokenPayloadParam() tokenPayload: TokenPayloadDto) {
-    return this.serviceService.findAllMyService(tokenPayload.sub);
-  }
-
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.serviceService.findOne(id);
   }
 
-  @UseGuards(AuthTokenGuard)
+  @SetRoleAccess(Roles.PROVIDER)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -59,7 +59,8 @@ export class ServiceController {
     return this.serviceService.update(id, tokenPayload.sub, updateServiceDto);
   }
 
-  @UseGuards(AuthTokenGuard)
+  @SetRoleAccess(Roles.PROVIDER)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Delete(':id')
   remove(
     @Param('id', ParseIntPipe) id: number,
@@ -68,7 +69,8 @@ export class ServiceController {
     return this.serviceService.remove(id, tokenPayload.sub);
   }
 
-  @UseGuards(AuthTokenGuard)
+  @SetRoleAccess(Roles.CLIENT)
+  @UseGuards(AuthTokenGuard, RoleGuard)
   @Patch(':id/toggle-active')
   toggleIsActive(
     @Param('id', ParseIntPipe) id: number,

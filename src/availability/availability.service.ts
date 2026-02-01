@@ -20,6 +20,14 @@ export class AvailabilityService {
     });
   }
 
+  findAll(providerId: number) {
+    return this.prismaService.availability.findMany({
+      where: {
+        providerId,
+      },
+    });
+  }
+
   findMyAvailabilities(idAuthenticated: number) {
     return this.prismaService.availability.findMany({
       where: {
