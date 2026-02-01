@@ -23,7 +23,6 @@ import { RESET_PASSWORD_KEY } from './auth.constants';
 import { MailQueue } from 'src/common/mail/mail.queue';
 import { env } from 'src/utils/env-validator';
 
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -87,9 +86,32 @@ export class AuthService {
       user.role,
     );
 
+    const expiresAt = new Date();
+    expiresAt.setSeconds(
+      expiresAt.getSeconds() + this.jwtConfiguration.jwtRefreshTtl,
+    );
+
+    await this.prismaService.refreshToken.create({
+      data: {
+        userId: user.id,
+        token: refreshToken,
+        expiresAt,
+      },
+    });
+
     return {
       accesToken,
       refreshToken,
+    };
+  }
+
+  async logout(userId: number) {
+    await this.prismaService.refreshToken.deleteMany({
+      where: { userId },
+    });
+
+    return {
+      message: 'User logged out successfully',
     };
   }
 
@@ -139,6 +161,31 @@ export class AuthService {
         throw new NotFoundException('User not found');
       }
 
+      const storedToken = await this.prismaService.refreshToken.findUnique({
+        where: {
+          token: refreshTokenDto.refreshToken,
+        },
+      });
+
+      if (!storedToken) {
+        throw new UnauthorizedException('Refresh token not found');
+      }
+
+      if (storedToken.expiresAt < new Date()) {
+        await this.prismaService.refreshToken.delete({
+          where: {
+            id: storedToken.id,
+          },
+        });
+        throw new UnauthorizedException('Refresh token has expired');
+      }
+
+      await this.prismaService.refreshToken.delete({
+        where: {
+          id: storedToken.id,
+        },
+      });
+
       const accesToken = await this.generateToken<Partial<User>>(
         user.id,
         this.jwtConfiguration.jwtTtl,
@@ -151,12 +198,31 @@ export class AuthService {
         user.role,
       );
 
+      const expiresAt = new Date();
+      expiresAt.setSeconds(
+        expiresAt.getSeconds() + this.jwtConfiguration.jwtRefreshTtl,
+      );
+
+      await this.prismaService.refreshToken.create({
+        data: {
+          userId: user.id,
+          token: refreshToken,
+          expiresAt,
+        },
+      });
+
       return {
         accesToken,
         refreshToken,
       };
     } catch (error) {
-      throw new UnauthorizedException(error);
+      if (
+        error instanceof NotFoundException ||
+        error instanceof UnauthorizedException
+      ) {
+        throw error;
+      }
+      throw new UnauthorizedException('Invalid refresh token');
     }
   }
 

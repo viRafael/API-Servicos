@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -10,20 +11,33 @@ import { Roles } from '../enum/roles.enum';
 import { TokenPayloadDto } from '../dto/token-payload.dto';
 
 export class RoleGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const rolesRequireds = this.reflector.get<Roles[] | undefined>(
-      REQUIRE_ROLE_KEY,
+    const UserRoleLevel = {
+      ADMIN: 99,
+      PROVIDER: 70,
+      CLIENT: 50,
+    } as const;
+
+    const isPublic = this.reflector.get<boolean>(
+      'isPublic',
       context.getHandler(),
     );
 
-    // Rota é publicas, pode passar
-    if (!rolesRequireds) {
+    if (isPublic) {
       return true;
     }
 
-    // Precisamos do tokenPayload vindo do AuthTokenGuards
+    let rolesRequireds = this.reflector.getAllAndOverride<Roles[]>(
+      REQUIRE_ROLE_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
+    if (!rolesRequireds) {
+      rolesRequireds = [Roles.ADMIN];
+    }
+
     const request: Request = context.switchToHttp().getRequest();
     const tokenPayload = request[REQUEST_TOKEN_PAYLOAD_KEY] as TokenPayloadDto;
 
@@ -31,17 +45,14 @@ export class RoleGuard implements CanActivate {
       throw new UnauthorizedException('User not log in.');
     }
 
-    const actualRole = tokenPayload.role;
+    const requiredLevel = Math.min(
+      ...rolesRequireds.map((role) => UserRoleLevel[role]),
+    );
 
-    // Se é ADMIN pode passar
-    if (actualRole === Roles.ADMIN) {
-      return true;
-    }
+    const userLevel = UserRoleLevel[tokenPayload.role];
 
-    const hasPermission = rolesRequireds.includes(actualRole);
-
-    if (!hasPermission) {
-      throw new UnauthorizedException(`User não tem permissão requerida`);
+    if (userLevel < requiredLevel) {
+      throw new ForbiddenException('Unauthorized access');
     }
 
     return true;

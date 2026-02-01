@@ -31,6 +31,11 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @Post('/logout')
+  logout(@TokenPayloadParam() tokenPayload: TokenPayloadDto) {
+    return this.authService.logout(tokenPayload.sub);
+  }
+
   @Post('register')
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);

@@ -52,6 +52,7 @@ model User {
   availabilities     Availability[]
   bookingsAsProvider Booking[]      @relation("ProviderBookings")
   reviews            Review[]       @relation("ProviderReviews")
+  refreshTokens      RefreshToken[]
 
   @@map("users")
 }
@@ -75,17 +76,17 @@ model Service {
 }
 
 model Availability {
-  id        Int    @id @default(autoincrement())
-  dayOfWeek Int // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
-  startTime String // "09:00"
-  endTime   String // "18:00"
+  id         Int    @id @default(autoincrement())
+  providerId Int
+  dayOfWeek  Int // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+  startTime  String // "09:00"
+  endTime    String // "18:00"
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  provider   User @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  providerId Int
+  provider User @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
   @@map("availabilities")
 }
@@ -98,6 +99,9 @@ model Booking {
   clientGoogleEventId   String?       @map("client_google_event_id")
   status                BookingStatus @default(PENDING_PAYMENT)
   notes                 String?
+  serviceId             Int
+  clientId              Int
+  providerId            Int
 
   // Stripe Integration
   paymentIntentId String? @unique
@@ -110,14 +114,9 @@ model Booking {
   updatedAt   DateTime  @updatedAt
 
   // Relations
-  service   Service @relation(fields: [serviceId], references: [id])
-  serviceId Int
-
-  client   User @relation("ClientBookings", fields: [clientId], references: [id])
-  clientId Int
-
-  provider   User @relation("ProviderBookings", fields: [providerId], references: [id])
-  providerId Int
+  service  Service @relation(fields: [serviceId], references: [id])
+  client   User    @relation("ClientBookings", fields: [clientId], references: [id])
+  provider User    @relation("ProviderBookings", fields: [providerId], references: [id])
 
   payment Payment?
   review  Review?
@@ -127,9 +126,11 @@ model Booking {
 }
 
 model Payment {
-  id     Int           @id @default(autoincrement())
-  amount Float
-  status PaymentStatus @default(PENDING)
+  id        Int           @id @default(autoincrement())
+  amount    Float
+  status    PaymentStatus @default(PENDING)
+  bookingId Int           @unique
+  userId    Int
 
   // Stripe
   paymentIntentId String  @unique
@@ -145,32 +146,38 @@ model Payment {
   updatedAt DateTime @updatedAt
 
   // Relations
-  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  bookingId Int     @unique
-
-  user   User @relation(fields: [userId], references: [id])
-  userId Int
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
 
   @@map("payments")
 }
 
 model Review {
-  id      Int    @id @default(autoincrement())
-  rating  Int // 1 a 5 estrelas
-  comment String
+  id         Int    @id @default(autoincrement())
+  providerId Int
+  clientId   Int
+  bookingId  Int    @unique
+  rating     Int // 1 a 5 estrelas
+  comment    String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  bookingId Int     @unique
-
-  client   User @relation("ClientReviews", fields: [clientId], references: [id])
-  clientId Int
-
-  provider   User @relation("ProviderReviews", fields: [providerId], references: [id])
-  providerId Int
+  booking  Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  client   User    @relation("ClientReviews", fields: [clientId], references: [id])
+  provider User    @relation("ProviderReviews", fields: [providerId], references: [id])
 
   @@map("reviews")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  expiresAt DateTime
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
 }
