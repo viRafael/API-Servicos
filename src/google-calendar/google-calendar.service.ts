@@ -4,7 +4,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { google } from 'googleapis';
-import { FullBooking } from 'src/payment/booking/types/booking.type';
+import { FullBooking } from 'src/booking/types/booking.type';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { env } from 'src/utils/env-validator';
 

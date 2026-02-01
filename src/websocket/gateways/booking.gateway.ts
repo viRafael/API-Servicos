@@ -11,7 +11,7 @@ import { UseGuards } from '@nestjs/common';
 import { WsJwtGuard } from '../guards/ws-jwt.guard';
 import { WsCurrentUser } from '../decorators/ws-current-user.decorator';
 import type { SocketWithUser } from '../interfaces/socket-with-user.interface';
-import { FullBooking } from 'src/payment/booking/types/booking.type';
+import { FullBooking } from 'src/booking/types/booking.type';
 import { FullReview } from 'src/review/types/review.type';
 
 @UseGuards(WsJwtGuard)

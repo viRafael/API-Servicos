@@ -3,7 +3,7 @@ import { MailService } from './mail.service';
 import { BullModule } from '@nestjs/bullmq';
 import { MailProcessor } from './mail.processor';
 import { MailQueue } from './mail.queue';
-import { BookingModule } from 'src/payment/booking/booking.module';
+import { BookingModule } from 'src/booking/booking.module';
 
 const bullModule = BullModule.registerQueue({
   name: 'mail',

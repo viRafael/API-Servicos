@@ -394,8 +394,8 @@ export class BookingService {
     });
 
     const paymentIntent = await this.paymentService.createPaymentIntent(
-      booking.id,
-      service.price,
+      clientId,
+      { bookingId: booking.id },
     );
 
     return {

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import Stripe from 'stripe';
 import { env } from 'src/utils/env-validator';
-import { BookingService } from '../../payment/booking/booking.service';
+import { BookingService } from '../../booking/booking.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { BookingGateway } from 'src/websocket/gateways/booking.gateway';

@@ -12,7 +12,7 @@ export class PaymentService {
     private readonly stripe: Stripe,
   ) {}
 
-  async createIntent(
+  async createPaymentIntent(
     clientId: number,
     createPaymentIntentDto: CreatePaymentIntentDto,
   ) {

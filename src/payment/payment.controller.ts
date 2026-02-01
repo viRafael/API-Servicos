@@ -26,11 +26,11 @@ export class PaymentController {
   @SetRoleAccess(Roles.CLIENT)
   @UseGuards(AuthTokenGuard, RoleGuard)
   @Post('create-intent')
-  createIntent(
+  createPaymentIntent(
     @TokenPayloadParam() tokenPayload: TokenPayloadDto,
     @Body() createPaymentIntentDto: CreatePaymentIntentDto,
   ) {
-    return this.paymentService.createIntent(
+    return this.paymentService.createPaymentIntent(
       tokenPayload.sub,
       createPaymentIntentDto,
     );

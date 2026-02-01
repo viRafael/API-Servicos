@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from 'src/auth/auth.module';
-import { BookingModule } from 'src/payment/booking/booking.module';
+import { BookingModule } from 'src/booking/booking.module';
 import { PaymentModule } from 'src/payment/payment.module';
 import { ReviewModule } from 'src/review/review.module';
 import { ServiceModule } from 'src/services/service.module';
