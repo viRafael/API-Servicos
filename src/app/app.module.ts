@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { AuthModule } from 'src/auth/auth.module';
 import { BookingModule } from 'src/booking/booking.module';
 import { PaymentModule } from 'src/payment/payment.module';
@@ -36,7 +34,5 @@ import { GoogleCalendarModule } from 'src/google-calendar/google-calendar.module
     WebhooksModule,
     GoogleCalendarModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}

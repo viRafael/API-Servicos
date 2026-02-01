@@ -19,6 +19,7 @@ import { FullBooking } from './types/booking.type';
 import { MailQueue } from 'src/common/mail/mail.queue';
 import { PaymentService } from 'src/payment/payment.service';
 import { GoogleCalendarService } from 'src/google-calendar/google-calendar.service';
+import { BookingGateway } from 'src/websocket/gateways/booking.gateway';
 
 @Injectable()
 export class BookingService {
@@ -28,6 +29,7 @@ export class BookingService {
     private readonly mailQueue: MailQueue,
     private readonly paymentService: PaymentService,
     private readonly googleCalendarService: GoogleCalendarService,
+    private readonly bookingGateway: BookingGateway,
   ) {}
 
   private validateBookingCanBeModified(
@@ -201,7 +203,13 @@ export class BookingService {
     await this.mailQueue.sendBookingConfirmation(updatedBooking.id);
     await this.mailQueue.sendPaymentConfirmed(updatedBooking.id);
 
-    return this.getFullBooking(updatedBooking.id);
+    const fullBooking = await this.getFullBooking(updatedBooking.id);
+    this.bookingGateway.notifyPaymentConfirmed(
+      fullBooking.clientId,
+      fullBooking,
+    );
+
+    return fullBooking;
   }
 
   async getFullBooking(bookingId: number): Promise<FullBooking> {
@@ -582,6 +590,14 @@ export class BookingService {
     });
 
     const fullBooking = await this.getFullBooking(CanceledBooking.id);
+    const cancelledBy = userId === fullBooking.clientId ? 'client' : 'provider';
+    this.bookingGateway.notifyBookingCancelled(
+      fullBooking.clientId,
+      fullBooking.providerId,
+      fullBooking,
+      cancelledBy,
+      cancelBookingDto.reason,
+    );
 
     await this.mailQueue.sendCancellation(booking.id, cancelBookingDto.reason);
 
@@ -634,7 +650,14 @@ export class BookingService {
       },
     });
 
-    return this.getFullBooking(id);
+    const fullBooking = await this.getFullBooking(id);
+    this.bookingGateway.notifyBookingCompleted(
+      fullBooking.clientId,
+      fullBooking.providerId,
+      fullBooking,
+    );
+
+    return fullBooking;
   }
 
   async reschedule(
@@ -643,6 +666,7 @@ export class BookingService {
     rescheduleBookingDto: RescheduleBookingDto,
   ) {
     const { newStartTime } = rescheduleBookingDto;
+    const oldStartTime = (await this.getFullBooking(id)).startTime;
 
     const booking = await this.prismaService.booking.findUnique({
       where: { id },
@@ -724,6 +748,13 @@ export class BookingService {
         );
       }
     }
+
+    this.bookingGateway.notifyBookingRescheduled(
+      fullBooking.clientId,
+      fullBooking.providerId,
+      fullBooking,
+      oldStartTime,
+    );
 
     return fullBooking;
   }

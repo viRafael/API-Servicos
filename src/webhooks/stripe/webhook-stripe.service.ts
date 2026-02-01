@@ -4,6 +4,9 @@ import { env } from 'src/utils/env-validator';
 import { BookingService } from '../../booking/booking.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { BookingGateway } from 'src/websocket/gateways/booking.gateway';
+import { PrismaService } from 'src/common/prisma/prisma.service';
+import { BookingStatus } from '@prisma/client';
 
 @Injectable()
 export class StripeWebhookService {
@@ -14,6 +17,8 @@ export class StripeWebhookService {
 
   constructor(
     private readonly bookingService: BookingService,
+    private readonly bookingGateway: BookingGateway,
+    private readonly prisma: PrismaService,
     @InjectQueue('mail')
     private readonly mailQueue: Queue,
   ) {}
@@ -23,13 +28,35 @@ export class StripeWebhookService {
       paymentIntent.id,
     );
 
+    // A notificação de sucesso já é enviada de dentro do confirmByPaymentIntent no BookingService
+
     await this.mailQueue.add('send-payment-confirmed', {
       bookingId: booking.id,
     });
   }
 
-  private handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
-    this.logger.warn(`Payment failed: ${paymentIntent.id}`);
+  private async handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
+    this.logger.warn(
+      `Payment failed for intent ${paymentIntent.id}: ${paymentIntent.last_payment_error?.message}`,
+    );
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { paymentIntentId: paymentIntent.id },
+      include: { service: true, client: true, provider: true },
+    });
+
+    if (booking) {
+      await this.prisma.booking.update({
+        where: { id: booking.id },
+        data: { status: BookingStatus.PENDING_PAYMENT },
+      });
+
+      this.bookingGateway.notifyPaymentFailed(
+        booking.clientId,
+        booking,
+        paymentIntent.last_payment_error?.message,
+      );
+    }
   }
 
   private handleRefund(charge: Stripe.Charge) {
@@ -56,7 +83,7 @@ export class StripeWebhookService {
         break;
 
       case 'payment_intent.payment_failed':
-        this.handlePaymentFailed(event.data.object);
+        await this.handlePaymentFailed(event.data.object);
         break;
 
       case 'charge.refunded':

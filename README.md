@@ -1,98 +1,120 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# API de Serviços
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Esta é uma API baseada em NestJS para uma plataforma de agendamento de serviços. Inclui funcionalidades como autenticação de usuários (com papéis para clientes, prestadores de serviço e administradores), gerenciamento de serviços, agendamento de disponibilidade, reservas, pagamentos com Stripe, avaliações de usuários e integração com o Google Calendar. O projeto usa Prisma como ORM e é escrito em TypeScript.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Funcionalidades
 
-## Description
+-   **Autenticação de Usuário**: Registro e login seguros de usuário com autenticação baseada em JWT.
+-   **Controle de Acesso Baseado em Papel**: Diferentes papéis (Cliente, Prestador, Admin) com diferentes permissões.
+-   **Gerenciamento de Serviços**: Prestadores de serviço podem criar, atualizar e gerenciar seus serviços.
+-   **Agendamento de Disponibilidade**: Prestadores de serviço podem definir sua disponibilidade para agendamentos.
+-   **Sistema de Agendamento**: Clientes podem agendar serviços de prestadores com base em sua disponibilidade.
+-   **Integração de Pagamento**: Processamento seguro de pagamentos com Stripe.
+-   **Sistema de Avaliação**: Clientes podem deixar avaliações para os serviços que agendaram.
+-   **Integração com Google Calendar**: Crie e gerencie eventos do Google Calendar para agendamentos automaticamente.
+-   **Notificações por Email**: Envio de notificações por email para eventos como confirmação de agendamento e redefinição de senha.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tecnologias Utilizadas
 
-## Project setup
+-   **Framework**: [NestJS](https://nestjs.com/)
+-   **ORM de Banco de Dados**: [Prisma](https://www.prisma.io/)
+-   **Banco de Dados**: [SQLite](https://www.sqlite.org/index.html) (pode ser alterado em `prisma/schema.prisma`)
+-   **Autenticação**: [JWT](https://jwt.io/)
+-   **Pagamento**: [Stripe](https://stripe.com/)
+-   **Especificação da API**: [Swagger](https://swagger.io/)
+-   **Validação**: [class-validator](https://github.com/typestack/class-validator), [class-transformer](https://github.com/typestack/class-transformer)
+-   **Email**: [Nodemailer](https://nodemailer.com/), [BullMQ](https://bullmq.io/)
+-   **Agenda**: [API do Google Calendar](https://developers.google.com/calendar)
 
-```bash
-$ npm install
+## Começando
+
+Para obter uma cópia local em execução, siga estes passos simples.
+
+### Pré-requisitos
+
+-   [Node.js](https://nodejs.org/en/) (v18 ou superior)
+-   [npm](https://www.npmjs.com/) ou [yarn](https://yarnpkg.com/)
+-   Uma instância em execução do [Redis](https://redis.io/) para o BullMQ.
+
+### Instalação
+
+1.  Clone o repositório
+    ```sh
+    git clone https://github.com/seu_usuario/api-servicos.git
+    ```
+2.  Instale os pacotes NPM
+    ```sh
+    npm install
+    ```
+3.  Configure suas variáveis de ambiente criando um arquivo `.env` no diretório raiz. Você pode usar o arquivo `.env.example` como modelo.
+    ```env
+    DATABASE_URL="file:./dev.db"
+    
+    # JWT
+    JWT_SECRET=seu_segredo_jwt
+    JWT_EXPIRATION_TIME=3600
+    
+    # Google
+    GOOGLE_CLIENT_ID=seu_id_cliente_google
+    GOOGLE_CLIENT_SECRET=seu_segredo_cliente_google
+    GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
+    
+    # Stripe
+    STRIPE_SECRET_KEY=sua_chave_secreta_stripe
+    STRIPE_WEBHOOK_SECRET=seu_segredo_webhook_stripe
+    
+    # Email
+    MAIL_HOST=smtp.exemplo.com
+    MAIL_USER=usuario@exemplo.com
+    MAIL_PASS=sua_senha
+    MAIL_FROM=usuario@exemplo.com
+    
+    # API
+    PORT=3000
+    ```
+4.  Aplique as migrações do banco de dados
+    ```sh
+    npx prisma migrate dev
+    ```
+
+### Executando a Aplicação
+
+```sh
+# desenvolvimento
+npm run start:dev
+
+# modo de observação
+npm run start:watch
+
+# modo de produção
+npm run start:prod
 ```
 
-## Compile and run the project
+## Endpoints da API
 
-```bash
-# development
-$ npm run start
+A documentação da API é gerada automaticamente pelo Swagger e pode ser acessada em `http://localhost:{PORT}/docs`.
 
-# watch mode
-$ npm run start:dev
+Aqui está um resumo dos endpoints disponíveis:
 
-# production mode
-$ npm run start:prod
-```
+-   **Auth**: `/auth/register`, `/auth/login`, `/auth/refresh-token`, `/auth/google`
+-   **Users**: `/users`
+-   **Services**: `/services`
+-   **Availability**: `/availability`
+-   **Booking**: `/booking`
+-   **Payment**: `/payment`
+-   **Review**: `/review`
+-   **Google Calendar**: `/google-calendar`
+-   **Webhooks**: `/webhooks/stripe`
 
-## Run tests
+## Esquema do Banco de Dados
 
-```bash
-# unit tests
-$ npm run test
+O esquema do banco de dados é definido no arquivo `prisma/schema.prisma`. Ele consiste nos seguintes modelos:
 
-# e2e tests
-$ npm run test:e2e
+-   `User`
+-   `Service`
+-   `Availability`
+-   `Booking`
+-   `Payment`
+-   `Review`
 
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Para mais detalhes, consulte o arquivo `prisma/schema.prisma`.
