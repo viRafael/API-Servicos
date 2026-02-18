@@ -13,7 +13,12 @@ import { RescheduleBookingDto } from './dto/reschedule-booking.dto';
 import { FindAllBookingsDto } from './dto/find-all-bookings.dto';
 import { FindBookingsAsProviderDto } from './dto/find-bookings-as-provider.dto';
 import { addMinutes, isBefore } from 'date-fns';
-import { Booking, BookingStatus, Prisma, UserRole } from '@prisma/client';
+import {
+  Booking,
+  BookingStatus,
+  Prisma,
+  UserRole,
+} from 'src/generated/prisma/client';
 import { Roles } from 'src/auth/enum/roles.enum';
 import { FullBooking } from './types/booking.type';
 import { MailQueue } from 'src/common/mail/mail.queue';

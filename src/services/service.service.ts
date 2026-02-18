@@ -7,7 +7,7 @@ import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { UsersService } from 'src/users/users.service';
-import { UserRole } from '@prisma/client';
+import { UserRole } from 'src/generated/prisma/client';
 
 @Injectable()
 export class ServiceService {

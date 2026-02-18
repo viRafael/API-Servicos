@@ -6,13 +6,13 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { BookingGateway } from 'src/websocket/gateways/booking.gateway';
 import { PrismaService } from 'src/common/prisma/prisma.service';
-import { BookingStatus } from '@prisma/client';
+import { BookingStatus } from 'src/generated/prisma/client';
 
 @Injectable()
 export class StripeWebhookService {
   private readonly logger = new Logger(StripeWebhookService.name);
   private stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-    apiVersion: '2025-12-15.clover',
+    apiVersion: '2026-01-28.clover',
   });
 
   constructor(

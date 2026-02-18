@@ -5,9 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateReviewDto } from './dto/create-review.dto';
-import { UpdateReviewDto } from './dto/update-review.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
-import { BookingStatus } from '@prisma/client';
+import { BookingStatus } from 'src/generated/prisma/client';
 
 @Injectable()
 export class ReviewService {

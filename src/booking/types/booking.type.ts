@@ -1,4 +1,4 @@
-import { Booking, Payment, Service, User } from '@prisma/client';
+import { Booking, Payment, Service, User } from 'src/generated/prisma/client';
 
 export type FullBooking = Booking & {
   client: User;

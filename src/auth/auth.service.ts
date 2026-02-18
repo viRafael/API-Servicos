@@ -6,7 +6,6 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { User } from '@prisma/client';
 import { UsersService } from 'src/users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { HashingService } from './hashing/hasing.service';
@@ -22,6 +21,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RESET_PASSWORD_KEY } from './auth.constants';
 import { MailQueue } from 'src/common/mail/mail.queue';
 import { env } from 'src/utils/env-validator';
+import { User } from 'src/generated/prisma/client';
 
 @Injectable()
 export class AuthService {

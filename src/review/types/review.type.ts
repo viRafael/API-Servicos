@@ -1,4 +1,4 @@
-import { Review, Booking, User, Service } from '@prisma/client';
+import { Review, Booking, User, Service } from 'src/generated/prisma/client';
 
 export type FullReview = Review & {
   client: User;

@@ -1,5 +1,5 @@
 import { IsEnum, IsOptional, IsDateString } from 'class-validator';
-import { BookingStatus } from '@prisma/client'; // Assuming BookingStatus is an enum from Prisma client
+import { BookingStatus } from 'src/generated/prisma/client';
 
 export class FindBookingsAsProviderDto {
   @IsOptional()
