@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import * as Joi from 'joi';
 
 dotenv.config();
@@ -26,6 +26,9 @@ interface EnvVars {
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   GOOGLE_REDIRECT_URI: string;
+
+  REDIS_HOST: string;
+  REDIS_PORT: number;
 }
 
 const envSchema = Joi.object<EnvVars>({
@@ -51,6 +54,9 @@ const envSchema = Joi.object<EnvVars>({
   GOOGLE_CLIENT_ID: Joi.string().required(),
   GOOGLE_CLIENT_SECRET: Joi.string().required(),
   GOOGLE_REDIRECT_URI: Joi.string().uri().required(),
+
+  REDIS_HOST: Joi.string().hostname().required(),
+  REDIS_PORT: Joi.number().port().required(),
 })
   .unknown(true) // Permite outras variáveis de ambiente
   .required();

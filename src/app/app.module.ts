@@ -12,6 +12,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AvailabilityModule } from 'src/availability/availability.module';
 import { WebhooksModule } from 'src/webhooks/webhooks.module';
 import { GoogleCalendarModule } from 'src/google-calendar/google-calendar.module';
+import { env } from 'src/utils/env-validator';
 
 @Module({
   imports: [
@@ -19,8 +20,8 @@ import { GoogleCalendarModule } from 'src/google-calendar/google-calendar.module
     EventEmitterModule.forRoot(),
     BullModule.forRoot({
       connection: {
-        host: 'localhost',
-        port: 6379,
+        host: env.REDIS_HOST,
+        port: env.REDIS_PORT,
       },
     }),
     AuthModule,

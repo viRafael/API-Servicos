@@ -1,9 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from 'src/generated/prisma/client';
+import { env } from 'src/utils/env-validator';
 
 @Injectable()
 export class PrismaService extends PrismaClient {
-  async onModuleInit() {
-    await this.$connect();
+  constructor() {
+    const adapter = new PrismaPg({
+      connectionString: env.DATABASE_URL,
+    });
+    super({ adapter });
   }
 }
